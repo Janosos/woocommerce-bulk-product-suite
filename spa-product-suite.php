@@ -1,6 +1,6 @@
 /*
- * Título: Nakama Suite v23 (Price Mapping Fix) By ImperioDev
- * Descripción: Corrección crítica para leer 'Precio normal' ignorando 'Precio rebajado' en el CSV.
+ * Título: Nakama Suite v29 (Templates & Auto-Gallery) By ImperioDev
+ * Descripción: Agrega plantillas de precios/tallas complejas y genera automáticamente la galería de producto basada en las fotos de las variaciones.
  */
 
 // 1. CARGA DE RECURSOS
@@ -20,10 +20,23 @@ function nakama_load_resources() {
             $attributes[] = ['label' => $attr->attribute_label, 'slug' => $attr->attribute_name, 'terms' => $term_names];
         }
 
-        $cats = get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false]);
+        // Categorías con Padre (Desambiguación)
+        $cats_raw = get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false]);
+        $cats_formatted = [];
+        foreach ($cats_raw as $c) {
+            $display_name = $c->name;
+            if ($c->parent > 0) {
+                $parent = get_term($c->parent, 'product_cat');
+                if ($parent && !is_wp_error($parent)) {
+                    $display_name .= " ({$parent->name})";
+                }
+            }
+            $cats_formatted[] = ['name' => $c->name, 'display' => $display_name];
+        }
+
         $tags = get_terms(['taxonomy' => 'product_tag', 'hide_empty' => false]);
 
-        wp_localize_script('jquery', 'NK_DATA', ['cats' => $cats, 'tags' => $tags, 'attrs' => $attributes]);
+        wp_localize_script('jquery', 'NK_DATA', ['cats' => $cats_formatted, 'tags' => $tags, 'attrs' => $attributes]);
     }
 }
 
@@ -35,58 +48,33 @@ function nakama_render_app() {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <style>
-        /* CSS */
-		.imperiodev-anim {
-        /* Color base intenso para que la rotación funcione bien */
-        color: #ff0000; 
-        /* La animación dura 4 segundos y es infinita */
-        animation: color-cycle 4s linear infinite;
-        /* Aseguramos que el elemento sea inline para no romper la frase */
-        display: inline-block; 
-    }
-
-    @keyframes color-cycle {
-        0% {
-            filter: hue-rotate(0deg);
-        }
-        100% {
-            /* Gira la rueda de colores 360 grados */
-            filter: hue-rotate(360deg);
-        }
-    }
+        .imperiodev-anim { color: #ff0000; animation: color-cycle 4s linear infinite; display: inline-block; }
+        @keyframes color-cycle { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
         #nk-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f4f6f8; z-index: 99990; overflow-y: auto; font-family: -apple-system, sans-serif; text-align: left; color: #3c434a; }
         .media-modal-backdrop { z-index: 999991 !important; } .media-modal { z-index: 999992 !important; }
-
         #nk-launcher { position: fixed; bottom: 80px; left: 20px; z-index: 99980; width: 55px; height: 55px; background: #d63638; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 28px; transition: transform 0.2s; }
         #nk-launcher:hover { transform: scale(1.1); background: #ff0000; }
-
         .nk-header { padding: 15px 40px; background: white; border-bottom: 1px solid #dcdcde; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .nk-container { padding: 40px; max-width: 1200px; margin: 0 auto; box-sizing: border-box; }
-        
         #nk-start-screen { display: flex; gap: 20px; justify-content: center; padding: 40px 0; }
         .nk-action-card { background: white; border: 1px solid #c3c4c7; border-radius: 8px; padding: 40px; width: 300px; text-align: center; cursor: pointer; transition: all 0.2s; }
         .nk-action-card:hover { transform: translateY(-5px); border-color: #2271b1; }
         .nk-action-icon { font-size: 40px; display: block; margin-bottom: 15px; }
         .nk-action-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; display:block;}
-
         #nk-manual-form { display: none; background: white; padding: 30px; border-radius: 8px; border: 1px solid #c3c4c7; max-width: 900px; margin: 0 auto; }
         .nk-form-row { display: flex; gap: 20px; margin-bottom: 15px; }
         .nk-form-group { flex: 1; position: relative; }
         .nk-form-label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #50575e; }
         .nk-input { width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; box-sizing: border-box; }
         .nk-input-fixed { background: #eef0f2; color: #646970; font-weight: 600; cursor: not-allowed; }
-        
         .nk-search-box { width: 100%; padding: 6px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
         .nk-checkbox-list { height: 100px; overflow-y: auto; border: 1px solid #8c8f94; padding: 5px; border-radius: 4px; background: #fff; }
         .nk-checkbox-item { display: block; font-size: 12px; margin-bottom: 3px; cursor: pointer; }
-        
         .nk-generator-box { background: #f6f7f7; padding: 20px; border-radius: 6px; border: 1px solid #dcdcde; margin-bottom: 20px; }
         .nk-gen-header { font-weight: bold; color: #2271b1; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        
         .nk-datalist-helper { position: absolute; top: 100%; left: 0; width: 100%; max-height: 150px; overflow-y: auto; background: white; border: 1px solid #2271b1; z-index: 50; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 0 0 4px 4px; }
         .nk-datalist-opt { padding: 8px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #eee; }
         .nk-datalist-opt:hover { background: #2271b1; color: white; }
-
         .nk-table-wrapper { margin-top: 20px; border: 1px solid #ccc; background: white; border-radius: 4px; overflow: hidden; }
         .nk-table-header { background: #eee; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
         #nk-staging-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -94,33 +82,31 @@ function nakama_render_app() {
         #nk-staging-table td { padding: 8px; border-bottom: 1px solid #eee; }
         .nk-btn-remove { color: red; cursor: pointer; font-weight: bold; padding: 0 5px; }
         .nk-btn-clear { font-size: 11px; color: #d63638; cursor: pointer; background: white; border: 1px solid #d63638; padding: 2px 8px; border-radius: 4px; }
-
+        .nk-btn-mini { font-size: 10px; background: #2271b1; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer; margin-left: 5px; }
+        .nk-btn-mini:hover { background: #135e96; }
+        .nk-template-bar { margin-bottom: 15px; padding: 10px; background: #e0e0e0; border-radius: 4px; display: flex; gap: 10px; align-items: center; }
+        .nk-btn-tmpl-main { background: #2271b1; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .nk-btn-tmpl-main:hover { background: #135e96; transform: translateY(-1px); }
         .product-card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid #ccc; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .product-card.type-variable { border-left-color: #826eb4; } .product-card.type-simple { border-left-color: #2271b1; }
         .nk-main-info { display: flex; gap: 20px; align-items: flex-start; padding-bottom: 15px; border-bottom: 1px solid #f0f0f1; }
-        
         .nk-thumb-container { width: 80px; flex-shrink: 0; text-align: center; }
         .nk-thumb-box-lg { width: 80px; height: 80px; background: #eee; cursor: pointer; position: relative; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; }
         .nk-thumb-box-lg img { width: 100%; height: 100%; object-fit: cover; }
-        
         .nk-details { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
         .nk-row-input { width: 100%; padding: 6px 10px; border: 1px solid #8c8f94; border-radius: 4px; display: block; box-sizing: border-box; font-size: 13px; }
-        
         .nk-desc-wrapper { border: 1px solid #eee; padding: 10px; background: #fcfcfc; border-radius: 4px; }
         .nk-desc-header { display:flex; justify-content:space-between; margin-bottom:5px; align-items: center; }
         .nk-desc-area { width: 100%; height: 60px; border: 1px solid #ccc; font-family: inherit; font-size: 12px; resize: vertical; box-sizing: border-box; }
-        
         .nk-meta-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
         .nk-meta-tag { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; font-size: 11px; color: #50575e; background: #f0f0f1; border: 1px solid #dcdcde; border-radius: 4px; white-space: nowrap; }
         .nk-btn-template { font-size: 10px !important; line-height: 1 !important; padding: 4px 8px !important; height: auto !important; width: auto !important; background: #fff; border: 1px solid #2271b1; color: #2271b1; border-radius: 3px; cursor: pointer; text-transform: uppercase; font-weight: 600; }
         .nk-btn-template:hover { background: #2271b1; color: white; }
-
         .nk-smart-area { background: #f8f9fa; padding: 15px; border: 1px dashed #ccc; border-radius: 6px; margin-top: 5px; }
         .nk-thumbs-grid { display: flex; gap: 10px; flex-wrap: wrap; }
         .nk-thumb-item { display: flex; align-items: center; gap: 8px; background: white; padding: 6px; border: 1px solid #c3c4c7; border-radius: 4px; }
         .nk-thumb-box-sm { width: 40px; height: 40px; background: #eee; cursor: pointer; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; position: relative; }
         .nk-thumb-box-sm img { width: 100%; height: 100%; object-fit: cover; }
-        
         .status-col { min-width: 100px; text-align: right; font-weight: bold; font-size: 12px; color: #666; }
         #nk-progress-bar-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: #f0f0f1; display: none; }
         #nk-progress-bar-fill { height: 100%; background: #008a20; width: 0%; transition: width 0.3s; }
@@ -129,17 +115,15 @@ function nakama_render_app() {
     <div id="nk-launcher" title="Abrir Nakama Suite">🚀</div>
 
     <div id="nk-modal">
-<div class="nk-header">
-    <div style="font-size: 20px; font-weight: bold;">
-        ⚡ Nakama Suite Import Tool v23 by 
-        <span class="imperiodev-anim">ImperioDev</span>
-    </div>
-    
-    <div style="display:flex; gap:10px;">
-        <button class="button" id="nk-reset-btn" style="display:none;">🏠 Inicio</button>
-        <button class="button" onclick="jQuery('#nk-modal').fadeOut()">Cerrar</button>
-        <button class="button button-primary" id="nk-process-btn" style="display:none;">Subir a WooCommerce</button>
-    </div>
+        <div class="nk-header">
+            <div style="font-size: 20px; font-weight: bold;">
+                ⚡ Nakama Suite Import Tool v29 by <span class="imperiodev-anim">ImperioDev</span>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="button" id="nk-reset-btn" style="display:none;">🏠 Inicio</button>
+                <button class="button" onclick="jQuery('#nk-modal').fadeOut()">Cerrar</button>
+                <button class="button button-primary" id="nk-process-btn" style="display:none;">Subir a WooCommerce</button>
+            </div>
             <div id="nk-progress-bar-container"><div id="nk-progress-bar-fill"></div></div>
         </div>
 
@@ -157,7 +141,10 @@ function nakama_render_app() {
             </div>
 
             <div id="nk-manual-form">
-                <h2 style="margin-top:0;">Nuevo Producto</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 style="margin-top:0;">Nuevo Producto</h2>
+                    <button class="nk-btn-clear" id="nk-wipe-form">🧹 Limpiar Todo el Formulario</button>
+                </div>
                 
                 <div class="nk-form-row">
                     <div class="nk-form-group"><label class="nk-form-label">Nombre</label><input type="text" id="man-name" class="nk-input" placeholder="One Pisu"></div>
@@ -172,17 +159,28 @@ function nakama_render_app() {
                 <div class="nk-generator-box">
                     <div class="nk-gen-header"><span>🛠️ Definir Variantes</span><button class="nk-btn-clear" id="nk-clear-inputs">Limpiar Campos</button></div>
                     
-                    <div class="nk-form-row">
-                        <div class="nk-form-group" style="flex:0.3;"><label class="nk-form-label">Atributo</label><input type="text" class="nk-input nk-input-fixed" value="Estilo" readonly></div>
-                        <div class="nk-form-group"><label class="nk-form-label">Valores</label><input type="text" id="man-attr1-vals" class="nk-input" placeholder="Ej: Oversize, T-shirt" autocomplete="off"><div class="nk-datalist-helper" id="list-estilo"></div></div>
+                    <div class="nk-template-bar">
+                        <span>⚡ Plantillas Rápidas: </span>
+                        <button class="nk-btn-tmpl-main" onclick="applyTemplate_SemitonoNegro()">⚫ Semitono/Estampado (Negro)</button>
                     </div>
+
                     <div class="nk-form-row">
                         <div class="nk-form-group" style="flex:0.3;"><label class="nk-form-label">Atributo</label><input type="text" class="nk-input nk-input-fixed" value="Color" readonly></div>
-                        <div class="nk-form-group"><label class="nk-form-label">Valores</label><input type="text" id="man-attr2-vals" class="nk-input" placeholder="Ej: Negro, Blanco" autocomplete="off"><div class="nk-datalist-helper" id="list-color"></div></div>
+                        <div class="nk-form-group"><label class="nk-form-label">Valores</label><input type="text" id="man-attr1-vals" class="nk-input" placeholder="Ej: Negro, Blanco" autocomplete="off"><div class="nk-datalist-helper" id="list-color"></div></div>
+                    </div>
+                    <div class="nk-form-row">
+                        <div class="nk-form-group" style="flex:0.3;"><label class="nk-form-label">Atributo</label><input type="text" class="nk-input nk-input-fixed" value="Estilo" readonly></div>
+                        <div class="nk-form-group"><label class="nk-form-label">Valores</label><input type="text" id="man-attr2-vals" class="nk-input" placeholder="Ej: Oversize, T-shirt" autocomplete="off"><div class="nk-datalist-helper" id="list-estilo"></div></div>
                     </div>
                     <div class="nk-form-row">
                         <div class="nk-form-group" style="flex:0.3;"><label class="nk-form-label">Atributo</label><input type="text" class="nk-input nk-input-fixed" value="Talla" readonly></div>
-                        <div class="nk-form-group"><label class="nk-form-label">Valores</label><input type="text" id="man-attr3-vals" class="nk-input" placeholder="Ej: S, M, L" autocomplete="off"><div class="nk-datalist-helper" id="list-talla"></div></div>
+                        <div class="nk-form-group">
+                            <label class="nk-form-label">Valores 
+                                <button type="button" class="nk-btn-mini" onclick="fillSizes('normal')">S-XL</button>
+                                <button type="button" class="nk-btn-mini" onclick="fillSizes('full')">S-3XL</button>
+                            </label>
+                            <input type="text" id="man-attr3-vals" class="nk-input" placeholder="Ej: S, M, L" autocomplete="off"><div class="nk-datalist-helper" id="list-talla"></div>
+                        </div>
                     </div>
                     
                     <div class="nk-form-row" style="align-items: flex-end; margin-top:20px;">
@@ -217,22 +215,74 @@ function nakama_render_app() {
         });
     }
 
+    // --- FUNCIONES DE PLANTILLAS Y ATAJOS ---
+    window.fillSizes = function(type) {
+        let vals = (type === 'normal') ? 'S, M, L, XL' : 'S, M, L, XL, 2XL, 3XL';
+        jQuery('#man-attr3-vals').val(vals);
+    };
+
+    window.applyTemplate_SemitonoNegro = function() {
+        if(!confirm('¿Aplicar plantilla Semitono (Negro)? Esto borrará las variantes actuales.')) return;
+        
+        pendingVariations = []; // Reset
+        let skuBase = jQuery('#man-sku').val();
+        
+        // Configuración basada en tu tabla
+        const CONFIG = [
+            { st: 'T-shirt',   sz: ['S', 'M', 'L', 'XL'], pr: '299' },
+            { st: 'T-shirt',   sz: ['2XL'],               pr: '330' },
+            { st: 'Oversize',  sz: ['S', 'M', 'L', 'XL'], pr: '399' },
+            { st: 'Oversize',  sz: ['2XL', '3XL'],        pr: '439' },
+            { st: 'Acid Wash', sz: ['S', 'M', 'L', 'XL'], pr: '319' },
+            { st: 'Acid Wash', sz: ['2XL'],               pr: '339' },
+            { st: 'Tank Top',  sz: ['S', 'M', 'L', 'XL'], pr: '289' },
+            { st: 'Tank Top',  sz: ['2XL', '3XL'],        pr: '309' },
+            { st: 'Sudadera',  sz: ['S', 'M', 'L', 'XL'], pr: '399' },
+            { st: 'Sudadera',  sz: ['2XL'],               pr: '439' }
+        ];
+
+        CONFIG.forEach(grp => {
+            grp.sz.forEach(size => {
+                let attrs = { 'Color': 'Negro', 'Estilo': grp.st, 'Talla': size };
+                pendingVariations.push({ sku: skuBase, price: grp.pr, attributes: attrs, image_id: '', shipping: DEFAULT_SHIP });
+            });
+        });
+
+        // Limpiar inputs visuales para evitar confusion
+        jQuery('#man-attr1-vals, #man-attr2-vals, #man-attr3-vals, #man-batch-price').val('');
+        
+        // Renderizar tabla
+        renderStagingTable();
+    };
+
+    window.renderStagingTable = function() {
+        let tbody = jQuery('#nk-staging-table tbody'); tbody.empty();
+        if(pendingVariations.length > 0) { jQuery('#nk-staging-wrapper').show(); } else { jQuery('#nk-staging-wrapper').hide(); }
+        pendingVariations.forEach((v, i) => {
+            let attrStr = Object.values(v.attributes).join(' / ');
+            let refSku = jQuery('#man-sku').val();
+            tbody.append(`<tr><td>${refSku}</td><td>${attrStr}</td><td>$${v.price}</td><td><span class="nk-btn-remove" onclick="removeVar(${i})">X</span></td></tr>`);
+        });
+    };
+
     jQuery(document).ready(function($) {
         const NK_AJAX_URL = '<?php echo admin_url('admin-ajax.php'); ?>';
         let parsedProducts = []; 
 
         function init() {
             if(typeof NK_DATA !== 'undefined') {
-                $('#man-cats-list').html(NK_DATA.cats.map(c => `<label class="nk-checkbox-item"><input type="checkbox" value="${c.name}" class="cat-chk"> ${c.name}</label>`).join(''));
+                $('#man-cats-list').html(NK_DATA.cats.map(c => `<label class="nk-checkbox-item"><input type="checkbox" value="${c.name}" class="cat-chk"> ${c.display}</label>`).join(''));
                 $('#man-tags-list').html(NK_DATA.tags.map(t => `<label class="nk-checkbox-item"><input type="checkbox" value="${t.name}" class="tag-chk"> ${t.name}</label>`).join(''));
-                bindSuggestions('Estilo', '#list-estilo', '#man-attr1-vals');
-                bindSuggestions('Color', '#list-color', '#man-attr2-vals');
+                bindSuggestions('Color', '#list-color', '#man-attr1-vals');
+                bindSuggestions('Estilo', '#list-estilo', '#man-attr2-vals');
                 bindSuggestions('Talla', '#list-talla', '#man-attr3-vals');
             }
         }
         
         function bindSuggestions(keyword, listId, inputId) {
             let found = NK_DATA.attrs.find(a => a.label.toLowerCase().includes(keyword.toLowerCase()));
+            if(!found && keyword === 'Talla') found = NK_DATA.attrs.find(a => a.slug.includes('size'));
+
             if(found && found.terms.length > 0) {
                 let html = found.terms.map(t => `<div class="nk-datalist-opt">${t}</div>`).join('');
                 $(listId).html(html);
@@ -248,17 +298,29 @@ function nakama_render_app() {
 
         $('#nk-launcher').click(function() { $('#nk-modal').fadeIn(); });
         $('#nk-btn-manual-mode').click(function() { $('#nk-start-screen').hide(); $('#nk-manual-form').fadeIn(); $('#nk-reset-btn').show(); });
+        
+        $('#nk-wipe-form').click(function() {
+            if(confirm('¿Borrar TODO el formulario (Nombre, SKU, Cats y Variantes)?')) {
+                $('#man-name, #man-sku').val('');
+                $('.cat-chk, .tag-chk').prop('checked', false);
+                $('#man-attr1-vals, #man-attr2-vals, #man-attr3-vals, #man-batch-price').val('');
+                pendingVariations = []; 
+                renderStagingTable();
+            }
+        });
+
         $('#nk-clear-inputs').click(function() { $('#man-attr1-vals, #man-attr2-vals, #man-attr3-vals, #man-batch-price').val(''); });
-        $('#nk-clear-table').click(function() { if(confirm('¿Borrar?')) { pendingVariations = []; renderStagingTable(); } });
+        $('#nk-clear-table').click(function() { if(confirm('¿Borrar variantes?')) { pendingVariations = []; renderStagingTable(); } });
         $('#nk-reset-btn').click(function() { if(confirm('¿Reiniciar?')) { parsedProducts = []; pendingVariations = []; $('#nk-products-list').empty().hide(); $('#nk-manual-form').hide(); $('#nk-start-screen').fadeIn(); $('#nk-process-btn').hide(); $('#nk-reset-btn').hide(); $('#nk-csv-input').val(''); renderStagingTable(); } });
 
         $('#nk-add-batch').click(function() {
             let price = $('#man-batch-price').val(); let skuBase = $('#man-sku').val();
             if(!price) { alert('Precio requerido'); return; }
             let defs = [];
-            let v1 = $('#man-attr1-vals').val().split(',').map(s=>s.trim()).filter(s=>s); if(v1.length) defs.push({name: 'Estilo', values: v1});
-            let v2 = $('#man-attr2-vals').val().split(',').map(s=>s.trim()).filter(s=>s); if(v2.length) defs.push({name: 'Color', values: v2});
+            let v1 = $('#man-attr1-vals').val().split(',').map(s=>s.trim()).filter(s=>s); if(v1.length) defs.push({name: 'Color', values: v1});
+            let v2 = $('#man-attr2-vals').val().split(',').map(s=>s.trim()).filter(s=>s); if(v2.length) defs.push({name: 'Estilo', values: v2});
             let v3 = $('#man-attr3-vals').val().split(',').map(s=>s.trim()).filter(s=>s); if(v3.length) defs.push({name: 'Talla', values: v3});
+            
             if(defs.length === 0) { alert('Llena al menos un atributo'); return; }
             let combos = defs.reduce((a, b) => a.flatMap(x => b.values.map(y => [...x, {name:b.name, value:y}])), [[]]);
             combos.forEach(combo => {
@@ -268,15 +330,6 @@ function nakama_render_app() {
             renderStagingTable(); $('#man-batch-price').val(''); 
         });
 
-        function renderStagingTable() {
-            let tbody = $('#nk-staging-table tbody'); tbody.empty();
-            if(pendingVariations.length > 0) { $('#nk-staging-wrapper').show(); } else { $('#nk-staging-wrapper').hide(); }
-            pendingVariations.forEach((v, i) => {
-                let attrStr = Object.values(v.attributes).join(' / ');
-                let refSku = $('#man-sku').val();
-                tbody.append(`<tr><td>${refSku}</td><td>${attrStr}</td><td>$${v.price}</td><td><span class="nk-btn-remove" onclick="removeVar(${i})">X</span></td></tr>`);
-            });
-        }
         window.removeVar = function(i) { pendingVariations.splice(i, 1); renderStagingTable(); };
 
         $('#nk-finalize-manual').click(function() {
@@ -322,7 +375,7 @@ function nakama_render_app() {
             checkSkusInDb(parsedProducts); 
         }
 
-        // --- CSV LOGIC FIXED ---
+        // --- CSV LOGIC ---
         function findIdx(h, k, e=[]) { 
             for (let i = 0; i < h.length; i++) { 
                 let c = (h[i] || '').toLowerCase(); 
@@ -332,14 +385,11 @@ function nakama_render_app() {
 
         function processCSVData(rows) {
             parsedProducts = []; 
-            
-            // MAPEO ESTRICTO DE PRECIO
             let headers = rows[0];
             let map = { 
                 type: findIdx(headers, ['tipo','type']), 
                 sku: findIdx(headers, ['sku']), 
                 name: findIdx(headers, ['nombre','name']), 
-                // AQUÍ ESTÁ LA MAGIA: Buscar 'precio normal' o 'regular price' y EXCLUIR 'rebajado' o 'sale'
                 price: findIdx(headers, ['precio normal', 'regular price'], ['rebajado', 'sale']), 
                 cat: findIdx(headers, ['categor', 'category'], ['catálogo']), 
                 desc: findIdx(headers, ['descrip', 'description'], ['corta']), 
@@ -364,7 +414,6 @@ function nakama_render_app() {
             localItems.forEach(p => processSingleProduct(p)); 
         }
 
-        // ... Helpers
         function getAttributes(r,h) { let a={}; for(let i=0;i<h.length;i++){ let x=(h[i]||''); if(x.includes('Nombre del atributo')||(x.includes('Attribute')&&x.includes('name'))){ let n=r[i]; let v=r[i+1]; if(n&&v)a[n]=v; } } return a; }
         function groupVariationsByStyle(vars) { let g={}; vars.forEach(v=>{ let p=[]; for(let [k,val] of Object.entries(v.attributes)){ if(!k.toLowerCase().includes('talla')&&!k.toLowerCase().includes('size')) p.push(val); } let key=p.length>0?p.join(' / '):'General'; if(!g[key])g[key]={label:key,image_id:'',indices:[]}; g[key].indices.push(v); }); return g; }
         function checkSkusInDb(products) { let skus=products.map(p=>p.sku).filter(s=>s); if(skus.length===0){renderUI(); return;} $.post(NK_AJAX_URL, {action:'nakama_check_skus', skus:skus}, function(res){ if(res.success){ let ex=res.data; products.forEach(p=>{ if(ex.includes(p.sku)) p.exists_in_db=true; }); } renderUI(); }); }
@@ -422,6 +471,7 @@ function nakama_render_app() {
 
 add_action('wp_ajax_nakama_check_skus', function() { $s=$_POST['skus']; $f=[]; foreach($s as $k) if(wc_get_product_id_by_sku($k)) $f[]=$k; wp_send_json_success($f); });
 
+// 3. BACKEND PROCESSING (AUTO GALLERY + TEMPLATES)
 add_action('wp_ajax_nakama_create_product', function() {
     check_ajax_referer('nk_import_nonce', 'nonce'); if(!current_user_can('manage_woocommerce')) wp_send_json_error();
     $d=$_POST['data']; try {
@@ -433,25 +483,105 @@ add_action('wp_ajax_nakama_create_product', function() {
         if(!empty($d['tags'])) $p->set_tag_ids(nakama_get_ids($d['tags'],'product_tag'));
         if(!empty($d['shipping'])){ $s=$d['shipping']; if($s['weight'])$p->set_weight($s['weight']); if($s['len'])$p->set_length($s['len']); if($s['width'])$p->set_width($s['width']); if($s['height'])$p->set_height($s['height']); }
         
+        // ATRIBUTOS
         if(!empty($d['raw_attributes'])&&$d['type']==='variable'){ 
-            $aa=[]; foreach($d['raw_attributes'] as $n=>$v){ 
-                $a=new WC_Product_Attribute(); $a->set_name($n); $a->set_options(array_map('trim',explode(',',$v))); 
-                $a->set_position(0); $a->set_visible(true); $a->set_variation(true); $aa[]=$a; 
-            } $p->set_attributes($aa); 
+            $aa=[]; 
+            $attribute_order = ['pa_color' => 1, 'pa_estilo' => 2, 'pa_size' => 3];
+            foreach($d['raw_attributes'] as $n=>$v){ 
+                $a=new WC_Product_Attribute(); 
+                $clean_name = strtolower(trim($n));
+                $taxonomy_slug = '';
+                if(strpos($clean_name, 'color') !== false) $taxonomy_slug = 'pa_color';
+                elseif(strpos($clean_name, 'estilo') !== false) $taxonomy_slug = 'pa_estilo';
+                elseif(strpos($clean_name, 'talla') !== false || strpos($clean_name, 'size') !== false) $taxonomy_slug = 'pa_size';
+                else $taxonomy_slug = wc_attribute_taxonomy_name($n); 
+                if(taxonomy_exists($taxonomy_slug)) {
+                    $a->set_name($taxonomy_slug);
+                    $attr_base_name = str_replace('pa_', '', $taxonomy_slug);
+                    $attr_id = wc_attribute_taxonomy_id_by_name($attr_base_name);
+                    $a->set_id($attr_id); 
+                    $a->set_options(nakama_get_ids($v, $taxonomy_slug)); 
+                    $a->set_visible(($taxonomy_slug === 'pa_color'));
+                } else {
+                    $a->set_name($n); $a->set_options(array_map('trim',explode(',',$v))); 
+                    $a->set_visible(true); $a->set_id(0);
+                }
+                $a->set_position(0); $a->set_variation(true); 
+                $aa[]=$a; 
+            } 
+            usort($aa, function($a, $b) use ($attribute_order) {
+                return ($attribute_order[$a->get_name()] ?? 99) - ($attribute_order[$b->get_name()] ?? 99);
+            });
+            $p->set_attributes($aa); 
         } elseif($d['type']==='simple') $p->set_regular_price($d['price']);
         
         $pid=$p->save();
         
+        // VARIACIONES Y GALERÍA
+        $min_p = null; $max_p = null; 
+        $gallery_ids = []; // Colección para galería
+
         if($d['type']==='variable'&&!empty($d['variations'])){
             foreach($d['variations'] as $v){
                 $vr=new WC_Product_Variation(); $vr->set_parent_id($pid);
-                $va=[]; foreach($v['attributes'] as $k=>$val) $va[sanitize_title($k)]=$val; $vr->set_attributes($va);
-                $vr->set_regular_price($v['price']); 
-                if(!empty($v['image_id']))$vr->set_image_id(absint($v['image_id']));
+                $va=[]; 
+                foreach($v['attributes'] as $k=>$val) {
+                    $clean_k = strtolower(trim($k));
+                    $tax_key = '';
+                    if(strpos($clean_k, 'color') !== false) $tax_key = 'pa_color';
+                    elseif(strpos($clean_k, 'estilo') !== false) $tax_key = 'pa_estilo';
+                    elseif(strpos($clean_k, 'talla') !== false || strpos($clean_k, 'size') !== false) $tax_key = 'pa_size';
+                    else $tax_key = wc_attribute_taxonomy_name($k);
+                    if(taxonomy_exists($tax_key)) {
+                        $term = get_term_by('name', $val, $tax_key);
+                        if($term && !is_wp_error($term)) { $va[$tax_key] = $term->slug; } else { $va[$tax_key] = sanitize_title($val); }
+                    } else {
+                        $va[$tax_key] = $val; 
+                    }
+                }
+                $vr->set_attributes($va);
+                $price_val = floatval($v['price']);
+                $vr->set_regular_price($price_val); 
+                
+                if(is_null($min_p) || $price_val < $min_p) $min_p = $price_val;
+                if(is_null($max_p) || $price_val > $max_p) $max_p = $price_val;
+
+                if(!empty($v['image_id'])) {
+                    $img_id = absint($v['image_id']);
+                    $vr->set_image_id($img_id);
+                    $gallery_ids[] = $img_id; // Agregar a lista de galería
+                }
+
                 if(!empty($v['shipping'])){ $s=$v['shipping']; if($s['weight'])$vr->set_weight($s['weight']); if($s['len'])$vr->set_length($s['len']); if($s['width'])$vr->set_width($s['width']); if($s['height'])$vr->set_height($s['height']); }
                 $vr->set_status('publish'); $vr->save();
             }
+
+            // --- AUTO GALLERY FEATURE ---
+            // Asignamos todas las imágenes de variantes a la galería del padre
+            if(!empty($gallery_ids)) {
+                $unique_gallery = array_unique($gallery_ids);
+                // Opcional: Si quieres excluir la imagen principal de la galería, descomenta:
+                // $main_img = $p->get_image_id();
+                // $unique_gallery = array_diff($unique_gallery, [$main_img]);
+                $pf = wc_get_product($pid);
+                $pf->set_gallery_image_ids($unique_gallery);
+                $pf->save();
+            }
+
+            // --- HARD FIX PRECIOS ---
+            if (!is_null($min_p)) {
+                update_post_meta($pid, '_price', $min_p);
+                update_post_meta($pid, '_min_variation_price', $min_p);
+                update_post_meta($pid, '_max_variation_price', $max_p);
+                update_post_meta($pid, '_min_variation_regular_price', $min_p);
+                update_post_meta($pid, '_max_variation_regular_price', $max_p);
+                
+                $pf = wc_get_product($pid);
+                $pf->save(); 
+            }
+
         } wp_send_json_success(['id'=>$pid]);
     } catch(Exception $e){ wp_send_json_error(['message'=>$e->getMessage()]); }
 });
+
 function nakama_get_ids($s,$t){ $i=[]; $n=explode(',',$s); foreach($n as $x){ $x=trim($x); if(!$x)continue; $tm=term_exists($x,$t); if($tm)$i[]=(int)$tm['term_id']; else{ $nw=wp_insert_term($x,$t); if(!is_wp_error($nw))$i[]=(int)$nw['term_id']; } } return $i; }
