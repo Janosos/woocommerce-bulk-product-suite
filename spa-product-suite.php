@@ -1,6 +1,6 @@
 /*
- * Título: Nakama Suite v34 (Dark/Light Toggle) By ImperioDev
- * Descripción: Agrega interruptor de modo claro/oscuro con persistencia de memoria local.
+ * Título: Nakama Suite v35 (Price Sync Fix & Size Buttons Update) By ImperioDev
+ * Descripción: Solución definitiva a la sincronización de precios en modo manual y actualización de botones de tallas rápidas (S-2XL).
  */
 
 // 1. CARGA DE RECURSOS
@@ -39,7 +39,7 @@ function nakama_load_resources() {
     }
 }
 
-// 2. UI (TOGGLE MODE)
+// 2. UI (DARK MODE + FIXES)
 add_action('wp_footer', 'nakama_render_app');
 function nakama_render_app() {
     if (!current_user_can('administrator')) return;
@@ -50,8 +50,6 @@ function nakama_render_app() {
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
 
     <script>
-        // Configuración inicial del tema
-        // Verifica si hay preferencia guardada o usa la del sistema
         if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
@@ -65,15 +63,12 @@ function nakama_render_app() {
                     colors: {
                         primary: "#FF3333",
                         "primary-dark": "#cc0000",
-                        // Definimos colores para dark y light
                         "background-dark": "#0A0A0A", 
                         "surface-dark": "#141414", 
                         "input-bg-dark": "#1F1F1F",
-                        
                         "background-light": "#F3F4F6",
                         "surface-light": "#FFFFFF",
                         "input-bg-light": "#FFFFFF",
-                        
                         "border-dark": "#333333",
                         "border-light": "#E5E7EB"
                     },
@@ -89,46 +84,32 @@ function nakama_render_app() {
     <style>
         /* --- 🔧 ZONA DE AJUSTES MANUALES --- */
         #nk-modal {
-            top: 40px !important; 
-            bottom: 20px !important; 
-            left: 20px !important;
-            right: 20px !important;
-            position: fixed !important; 
-            border-radius: 12px !important;
+            top: 40px !important; bottom: 20px !important; 
+            left: 20px !important; right: 20px !important;
+            position: fixed !important; border-radius: 12px !important;
         }
-        #nk-launcher {
-            bottom: 80px !important; 
-            left: 17px !important; 
-        }
+        #nk-launcher { bottom: 80px !important; left: 15px !important; }
         /* ---------------------------------- */
 
         #nk-root { font-family: 'Inter', sans-serif; }
         #nk-root h1, #nk-root h2, #nk-root h3, #nk-root .font-display { font-family: 'Teko', sans-serif; }
         
         #nk-modal ::-webkit-scrollbar { width: 8px; }
-        
-        /* Scrollbar dinámica Dark/Light */
         html.dark #nk-modal ::-webkit-scrollbar-track { background: #0A0A0A; }
         html.dark #nk-modal ::-webkit-scrollbar-thumb { background: #333; }
-        
         html:not(.dark) #nk-modal ::-webkit-scrollbar-track { background: #f1f1f1; }
         html:not(.dark) #nk-modal ::-webkit-scrollbar-thumb { background: #ccc; }
-
-        #nk-modal ::-webkit-scrollbar-thumb { border-radius: 4px; }
         #nk-modal ::-webkit-scrollbar-thumb:hover { background: #FF3333; }
 
         .nk-anim-pop { animation: nkPop 0.3s ease-out forwards; }
         @keyframes nkPop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         
-        /* Inputs adaptables */
         .nk-input-base {
             border-radius: 0.375rem !important; padding: 0.5rem 0.75rem !important; width: 100%;
             transition: all 0.2s; outline: none;
         }
-        /* Dark Input */
         html.dark .nk-input-base { background-color: #1F1F1F !important; border: 1px solid #333 !important; color: white !important; }
         html.dark .nk-input-base:focus { border-color: #FF3333 !important; ring: 1px #FF3333 !important; }
-        /* Light Input */
         html:not(.dark) .nk-input-base { background-color: #fff !important; border: 1px solid #d1d5db !important; color: #111 !important; }
         html:not(.dark) .nk-input-base:focus { border-color: #FF3333 !important; ring: 1px #FF3333 !important; }
         
@@ -144,7 +125,6 @@ function nakama_render_app() {
         html:not(.dark) .nk-checkbox-list label { color: #333; }
         .nk-checkbox-list label:hover { color: #FF3333 !important; }
         
-        /* Datalist Helper */
         .nk-datalist-helper {
             position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px; overflow-y: auto;
             z-index: 50; display: none; border-radius: 0 0 6px 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
@@ -168,14 +148,12 @@ function nakama_render_app() {
         </div>
 
         <div id="nk-modal" style="display:none;" class="dark:bg-black/90 bg-gray-100/90 backdrop-blur-sm z-[99991] overflow-hidden flex flex-col shadow-2xl border dark:border-gray-800 border-gray-300">
-            
             <div class="dark:bg-black/80 bg-white/80 p-4 md:p-6 border-b dark:border-gray-800 border-gray-200 flex justify-between items-center shrink-0 backdrop-blur-md">
                 <div>
-                    <h1 class="text-3xl md:text-4xl dark:text-white text-gray-900 uppercase font-bold m-0 leading-none">Nakama Suite <span class="text-primary">v34</span></h1>
+                    <h1 class="text-3xl md:text-4xl dark:text-white text-gray-900 uppercase font-bold m-0 leading-none">Nakama Suite <span class="text-primary">v35</span></h1>
                     <p class="text-gray-500 text-xs md:text-sm m-0">Importador de Productos &bull; ImperioDev Edition</p>
                 </div>
                 <div class="flex items-center gap-2 md:gap-3">
-                    
                     <button id="nk-theme-toggle" class="p-2 rounded-full dark:text-gray-400 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors focus:outline-none" title="Cambiar Tema">
                         <span id="nk-theme-icon" class="material-icons-outlined text-xl md:text-2xl">dark_mode</span>
                     </button>
@@ -190,7 +168,6 @@ function nakama_render_app() {
             </div>
 
             <div class="flex-1 overflow-y-auto p-4 md:p-8">
-                
                 <div id="nk-start-screen" class="flex flex-col md:flex-row gap-6 justify-center py-10 h-full items-center">
                     <div class="group dark:bg-input-bg-dark bg-white border dark:border-gray-700 border-gray-200 hover:border-primary p-10 rounded-xl cursor-pointer transition-all hover:-translate-y-2 text-center w-full md:w-80 shadow-lg" onclick="document.getElementById('nk-csv-input').click()">
                         <span class="material-icons-outlined text-6xl text-gray-400 group-hover:text-primary mb-4 transition-colors">folder_open</span>
@@ -198,10 +175,9 @@ function nakama_render_app() {
                         <p class="text-gray-500 text-sm">Carga masiva desde archivo</p>
                         <input type="file" id="nk-csv-input" accept=".csv" class="hidden" />
                     </div>
-                    
                     <div id="nk-btn-manual-mode" class="group dark:bg-input-bg-dark bg-white border dark:border-gray-700 border-gray-200 hover:border-primary p-10 rounded-xl cursor-pointer transition-all hover:-translate-y-2 text-center w-full md:w-80 shadow-lg">
                         <span class="material-icons-outlined text-6xl text-gray-400 group-hover:text-primary mb-4 transition-colors">edit_note</span>
-                        <h3 class="text-2xl dark:text-white text-gray-900 uppercase font-bold">Crear Manual</h3>
+                        <h3 class="text-2xl dark:text-white text-gray-900 uppercase font-bold">Creación Manual</h3>
                         <p class="text-gray-500 text-sm">Constructor visual de productos</p>
                     </div>
                 </div>
@@ -241,7 +217,7 @@ function nakama_render_app() {
                             <span class="text-primary font-display text-xl uppercase tracking-wider flex items-center gap-2"><span class="material-icons-outlined">tune</span> Generador de Variantes</span>
                             
                             <div class="flex gap-2">
-                                <button class="px-3 py-2 dark:bg-gray-800 bg-gray-200 hover:bg-primary dark:hover:bg-primary text-gray-700 dark:text-white hover:text-white text-xs rounded uppercase font-bold transition-colors flex items-center gap-1" onclick="applyTemplate_SemitonoNegro()"><span class="material-icons-outlined text-sm">flash_on</span> Plantilla Negra</button>
+                                <button class="px-3 py-2 dark:bg-gray-800 bg-gray-200 hover:bg-primary dark:hover:bg-primary text-gray-700 dark:text-white hover:text-white text-xs rounded uppercase font-bold transition-colors flex items-center gap-1" onclick="applyTemplate_SemitonoNegro()"><span class="material-icons-outlined text-sm">flash_on</span> Plantilla Semitono Estampado/Negro</button>
                                 <button id="nk-clear-inputs" class="px-3 py-2 border dark:border-gray-600 border-gray-300 hover:border-red-500 text-gray-500 hover:text-red-500 text-xs rounded uppercase font-bold transition-colors">Limpiar Campos</button>
                             </div>
                         </div>
@@ -267,13 +243,13 @@ function nakama_render_app() {
                                 <div class="w-full md:w-24 shrink-0 flex justify-between md:block">
                                     <span class="text-gray-500 text-xs uppercase font-bold">Talla</span>
                                     <div class="md:hidden flex gap-1">
-                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 text-[10px] px-2 py-0.5 rounded dark:text-white" onclick="fillSizes('normal')">S-XL</button>
+                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 text-[10px] px-2 py-0.5 rounded dark:text-white" onclick="fillSizes('normal')">S-2XL</button>
                                         <button type="button" class="bg-gray-200 dark:bg-gray-700 text-[10px] px-2 py-0.5 rounded dark:text-white" onclick="fillSizes('full')">S-3XL</button>
                                     </div>
                                 </div>
                                 <div class="relative flex-1">
                                     <div class="hidden md:flex absolute right-2 top-1.5 gap-1 z-10">
-                                        <button type="button" class="dark:bg-gray-800 bg-gray-200 hover:bg-primary dark:hover:bg-primary border dark:border-gray-600 border-gray-300 text-[10px] px-2 py-0.5 rounded dark:text-white text-gray-700 hover:text-white uppercase transition-colors" onclick="fillSizes('normal')">S-XL</button>
+                                        <button type="button" class="dark:bg-gray-800 bg-gray-200 hover:bg-primary dark:hover:bg-primary border dark:border-gray-600 border-gray-300 text-[10px] px-2 py-0.5 rounded dark:text-white text-gray-700 hover:text-white uppercase transition-colors" onclick="fillSizes('normal')">S-2XL</button>
                                         <button type="button" class="dark:bg-gray-800 bg-gray-200 hover:bg-primary dark:hover:bg-primary border dark:border-gray-600 border-gray-300 text-[10px] px-2 py-0.5 rounded dark:text-white text-gray-700 hover:text-white uppercase transition-colors" onclick="fillSizes('full')">S-3XL</button>
                                     </div>
                                     <input type="text" id="man-attr3-vals" class="nk-input-base" placeholder="Ej: S, M, L" autocomplete="off">
@@ -305,7 +281,6 @@ function nakama_render_app() {
                                     <div class="col-span-2 p-3">Precio</div>
                                     <div class="col-span-2 p-3 text-right">Borrar</div>
                                 </div>
-                                
                                 <div id="nk-staging-body" class="divide-y dark:divide-gray-800 divide-gray-200"></div>
                             </div>
                         </div>
@@ -325,15 +300,14 @@ function nakama_render_app() {
     const DEFAULT_SHIP = { weight: '0.25', len: '30', width: '25', height: '2' };
     const TEMPLATE_DESC = `✨ Fabricado con pasión en Nakama Bordados ✨\n\nCada uno de nuestros productos es elaborado cuidadosamente en nuestro taller, combinando bordado y estampado de alta calidad para ofrecerte piezas únicas, duraderas y llenas de estilo. Ya sea una prenda bordada o estampada, cuidamos cada detalle para garantizar un acabado profesional y resistente.`;
 
-    // --- DARK MODE LOGIC ---
     const themeToggleBtn = document.getElementById('nk-theme-toggle');
     const themeIcon = document.getElementById('nk-theme-icon');
 
     function updateThemeIcon() {
         if (document.documentElement.classList.contains('dark')) {
-            themeIcon.innerText = 'light_mode'; // Icono de Sol para ir a Light
+            themeIcon.innerText = 'light_mode'; 
         } else {
-            themeIcon.innerText = 'dark_mode'; // Icono de Luna para ir a Dark
+            themeIcon.innerText = 'dark_mode';
         }
     }
 
@@ -347,8 +321,7 @@ function nakama_render_app() {
         }
         updateThemeIcon();
     });
-    updateThemeIcon(); // Init
-    // -----------------------
+    updateThemeIcon();
 
     function filterList(input, listId) {
         var filter = input.value.toUpperCase();
@@ -359,9 +332,10 @@ function nakama_render_app() {
         });
     }
 
-    // Funciones globales
+    // --- ACTUALIZADO: BOTONES DE TALLAS ---
     window.fillSizes = function(type) {
-        let vals = (type === 'normal') ? 'S, M, L, XL' : 'S, M, L, XL, 2XL, 3XL';
+        // Normal ahora es hasta 2XL (S-2XL)
+        let vals = (type === 'normal') ? 'S, M, L, XL, 2XL' : 'S, M, L, XL, 2XL, 3XL';
         jQuery('#man-attr3-vals').val(vals);
     };
 
@@ -386,7 +360,6 @@ function nakama_render_app() {
         renderStagingTable();
     };
 
-    // --- RENDERIZADO GRID (FIX V33) ---
     window.renderStagingTable = function() {
         let container = jQuery('#nk-staging-body'); container.empty();
         if(pendingVariations.length > 0) { jQuery('#nk-staging-wrapper').show(); } else { jQuery('#nk-staging-wrapper').hide(); }
@@ -519,7 +492,6 @@ function nakama_render_app() {
             checkSkusInDb(parsedProducts); 
         }
 
-        // CSV Logic
         function findIdx(h, k, e=[]) { 
             for (let i = 0; i < h.length; i++) { 
                 let c = (h[i] || '').toLowerCase(); 
@@ -556,7 +528,6 @@ function nakama_render_app() {
         function groupVariationsByStyle(vars) { let g={}; vars.forEach(v=>{ let p=[]; for(let [k,val] of Object.entries(v.attributes)){ if(!k.toLowerCase().includes('talla')&&!k.toLowerCase().includes('size')) p.push(val); } let key=p.length>0?p.join(' / '):'General'; if(!g[key])g[key]={label:key,image_id:'',indices:[]}; g[key].indices.push(v); }); return g; }
         function checkSkusInDb(products) { let skus=products.map(p=>p.sku).filter(s=>s); if(skus.length===0){renderUI(); return;} $.post(NK_AJAX_URL, {action:'nakama_check_skus', skus:skus}, function(res){ if(res.success){ let ex=res.data; products.forEach(p=>{ if(ex.includes(p.sku)) p.exists_in_db=true; }); } renderUI(); }); }
 
-        // Render Cards (Dark Mode)
         function renderUI() {
             let c=$('#nk-products-list').empty().show(); $('#nk-process-btn').removeClass('hidden');
             parsedProducts.forEach((p,i)=>{
@@ -592,7 +563,7 @@ function nakama_render_app() {
                     <div class="dark:bg-gray-900/50 bg-gray-50 p-4 rounded border dark:border-gray-800 border-gray-200">
                         <div class="flex justify-between items-center mb-2">
                             <label class="text-xs font-bold text-gray-500 uppercase">Descripción</label>
-                            <button class="text-primary text-xs uppercase font-bold hover:text-red-600" onclick="tpl(${i})">✨ Usar Plantilla</button>
+                            <button class="text-primary text-xs uppercase font-bold hover:text-white" onclick="tpl(${i})">✨ Usar Plantilla</button>
                         </div>
                         <textarea id="desc-${i}" class="nk-input-base h-20 text-sm">${p.description}</textarea>
                     </div>
@@ -640,7 +611,7 @@ function nakama_render_app() {
 
 add_action('wp_ajax_nakama_check_skus', function() { $s=$_POST['skus']; $f=[]; foreach($s as $k) if(wc_get_product_id_by_sku($k)) $f[]=$k; wp_send_json_success($f); });
 
-// 3. BACKEND PROCESSING (GALLERY DEDUPLICATION FIX)
+// 3. BACKEND PROCESSING (FINAL SYNC FIX)
 add_action('wp_ajax_nakama_create_product', function() {
     check_ajax_referer('nk_import_nonce', 'nonce'); if(!current_user_can('manage_woocommerce')) wp_send_json_error();
     $d=$_POST['data']; try {
@@ -728,30 +699,30 @@ add_action('wp_ajax_nakama_create_product', function() {
             // --- GALLERY FIX: ELIMINAR DUPLICIDAD IMAGEN PRINCIPAL ---
             if(!empty($gallery_ids)) {
                 $unique_gallery = array_unique($gallery_ids);
-                $main_img_id = $p->get_image_id(); // Obtener ID de la destacada
-                
-                // Si existe imagen principal, quitarla del array de galería
+                $main_img_id = $p->get_image_id(); 
                 if($main_img_id) {
                     $unique_gallery = array_diff($unique_gallery, array($main_img_id));
                 }
-                
                 $pf = wc_get_product($pid);
                 $pf->set_gallery_image_ids($unique_gallery);
                 $pf->save();
             }
 
-            // --- HARD FIX PRECIOS ---
+            // --- HARD FIX PRECIOS + SYNC FORCE ---
             if (!is_null($min_p)) {
                 update_post_meta($pid, '_price', $min_p);
                 update_post_meta($pid, '_min_variation_price', $min_p);
                 update_post_meta($pid, '_max_variation_price', $max_p);
                 update_post_meta($pid, '_min_variation_regular_price', $min_p);
                 update_post_meta($pid, '_max_variation_regular_price', $max_p);
-                $pf = wc_get_product($pid);
-                $pf->save(); 
             }
-
-        } wp_send_json_success(['id'=>$pid]);
+            
+            // Forzar sincronización nativa de WC (Doble seguro)
+            WC_Product_Variable::sync( $pid );
+            wc_delete_product_transients( $pid );
+        } 
+        
+        wp_send_json_success(['id'=>$pid]);
     } catch(Exception $e){ wp_send_json_error(['message'=>$e->getMessage()]); }
 });
 
