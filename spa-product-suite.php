@@ -1,6 +1,6 @@
 /*
- * Título: Nakama Suite v31 (Responsive Margins & Admin Bar Fix) By ImperioDev
- * Descripción: Ajuste de márgenes de seguridad para la barra de admin de WP y reubicación del lanzador.
+ * Título: Nakama Suite v33 (Grid Layout Fix) By ImperioDev
+ * Descripción: Reemplazo de tablas HTML por CSS Grid para garantizar alineación perfecta de columnas y encabezados.
  */
 
 // 1. CARGA DE RECURSOS
@@ -39,7 +39,7 @@ function nakama_load_resources() {
     }
 }
 
-// 2. UI (AJUSTE MÁRGENES)
+// 2. UI (GRID LAYOUT)
 add_action('wp_footer', 'nakama_render_app');
 function nakama_render_app() {
     if (!current_user_can('administrator')) return;
@@ -72,39 +72,20 @@ function nakama_render_app() {
     </script>
 
     <style>
-        /* ========================================================= */
-        /* --- 🔧 ZONA DE AJUSTES MANUALES (MARGENES Y POSICION) --- */
-        /* ========================================================= */
-
-        /* 1. POSICIÓN DEL MODAL PRINCIPAL */
+        /* --- 🔧 ZONA DE AJUSTES MANUALES --- */
         #nk-modal {
-            /* Distancia desde arriba (Debe ser > 32px para librar barra de admin WP) */
             top: 40px !important; 
-            
-            /* Distancia desde abajo (Margen inferior) */
             bottom: 20px !important; 
-            
-            /* Márgenes laterales (izquierda y derecha) */
             left: 20px !important;
             right: 20px !important;
-
-            /* Aseguramos que sea fixed para que flote sobre la web */
             position: fixed !important; 
-            border-radius: 12px !important; /* Bordes redondeados del contenedor externo */
+            border-radius: 12px !important;
         }
-
-        /* 2. POSICIÓN DEL BOTÓN COHETE (LANZADOR) */
         #nk-launcher {
-            /* Qué tan arriba desde el fondo (Auméntalo si quieres que suba más) */
-            bottom: 80px !important; 
-            
-            /* Qué tan pegado a la izquierda (Disminúyelo a 0 si quieres pegarlo total) */
-            left: 17px !important; 
+            bottom: 120px !important; 
+            left: 10px !important; 
         }
-
-        /* ========================================================= */
-        /* ---------------- FIN DE AJUSTES MANUALES ---------------- */
-        /* ========================================================= */
+        /* ---------------------------------- */
 
         #nk-root { font-family: 'Inter', sans-serif; }
         #nk-root h1, #nk-root h2, #nk-root h3, #nk-root .font-display { font-family: 'Teko', sans-serif; }
@@ -155,7 +136,7 @@ function nakama_render_app() {
             
             <div class="bg-black/80 p-4 md:p-6 border-b border-gray-800 flex justify-between items-center shrink-0 backdrop-blur-md">
                 <div>
-                    <h1 class="text-3xl md:text-4xl text-white uppercase font-bold m-0 leading-none">Nakama Suite <span class="text-primary">v31</span></h1>
+                    <h1 class="text-3xl md:text-4xl text-white uppercase font-bold m-0 leading-none">Nakama Suite <span class="text-primary">v33</span></h1>
                     <p class="text-gray-400 text-xs md:text-sm m-0">Importador de Productos &bull; ImperioDev Edition</p>
                 </div>
                 <div class="flex gap-2 md:gap-3">
@@ -181,7 +162,7 @@ function nakama_render_app() {
                     
                     <div id="nk-btn-manual-mode" class="group bg-input-bg border border-gray-700 hover:border-primary p-10 rounded-xl cursor-pointer transition-all hover:-translate-y-2 text-center w-full md:w-80 shadow-lg">
                         <span class="material-icons-outlined text-6xl text-gray-500 group-hover:text-primary mb-4 transition-colors">edit_note</span>
-                        <h3 class="text-2xl text-white uppercase font-bold">Creación Manual</h3>
+                        <h3 class="text-2xl text-white uppercase font-bold">Crear Manual</h3>
                         <p class="text-gray-500 text-sm">Constructor visual de productos</p>
                     </div>
                 </div>
@@ -221,7 +202,7 @@ function nakama_render_app() {
                             <span class="text-primary font-display text-xl uppercase tracking-wider flex items-center gap-2"><span class="material-icons-outlined">tune</span> Generador de Variantes</span>
                             
                             <div class="flex gap-2">
-                                <button class="px-3 py-2 bg-gray-800 hover:bg-primary text-white text-xs rounded uppercase font-bold transition-colors flex items-center gap-1" onclick="applyTemplate_SemitonoNegro()"><span class="material-icons-outlined text-sm">flash_on</span> Plantilla Semitono</button>
+                                <button class="px-3 py-2 bg-gray-800 hover:bg-primary text-white text-xs rounded uppercase font-bold transition-colors flex items-center gap-1" onclick="applyTemplate_SemitonoNegro()"><span class="material-icons-outlined text-sm">flash_on</span> Plantilla Negra</button>
                                 <button id="nk-clear-inputs" class="px-3 py-2 border border-gray-600 hover:border-white text-gray-400 hover:text-white text-xs rounded uppercase font-bold transition-colors">Limpiar Campos</button>
                             </div>
                         </div>
@@ -277,21 +258,16 @@ function nakama_render_app() {
                                 <h4 class="text-white font-bold text-sm uppercase flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> Previsualización</h4>
                                 <button id="nk-clear-table" class="text-red-500 text-xs uppercase font-bold hover:text-red-400 transition-colors">Borrar Todo</button>
                             </div>
+                            
                             <div class="bg-black rounded border border-gray-800 overflow-hidden max-h-60 overflow-y-auto custom-scroll">
-                                <table id="nk-staging-table" class="w-full text-left text-sm text-gray-300">
-                                    <thead class="bg-gray-900 text-gray-500 uppercase text-xs sticky top-0">
-                                        <tr>
-    <th class="p-3 w-[100%]">SKU</th>
-    
-    <th class="p-3 w-[70%]">Combinación</th>
-    
-    <th class="p-3 w-[20%]">Precio</th>
-    
-    <th class="p-3 w-[10%] text-right">Borrar</th>
-</tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-800"></tbody>
-                                </table>
+                                <div class="grid grid-cols-12 gap-2 bg-gray-900 text-gray-500 uppercase text-xs font-bold sticky top-0 z-10 border-b border-gray-800">
+                                    <div class="col-span-3 p-3">SKU Ref</div>
+                                    <div class="col-span-5 p-3">Combinación</div>
+                                    <div class="col-span-2 p-3">Precio</div>
+                                    <div class="col-span-2 p-3 text-right">Borrar</div>
+                                </div>
+                                
+                                <div id="nk-staging-body" class="divide-y divide-gray-800"></div>
                             </div>
                         </div>
                     </div>
@@ -346,13 +322,27 @@ function nakama_render_app() {
         renderStagingTable();
     };
 
+    // --- RENDERIZADO GRID (FIX V33) ---
     window.renderStagingTable = function() {
-        let tbody = jQuery('#nk-staging-table tbody'); tbody.empty();
+        let container = jQuery('#nk-staging-body'); container.empty();
         if(pendingVariations.length > 0) { jQuery('#nk-staging-wrapper').show(); } else { jQuery('#nk-staging-wrapper').hide(); }
+        
         pendingVariations.forEach((v, i) => {
             let attrStr = Object.values(v.attributes).join(' <span class="text-gray-600">/</span> ');
             let refSku = jQuery('#man-sku').val();
-            tbody.append(`<tr class="hover:bg-gray-800 transition-colors"><td class="p-3 font-mono text-xs text-gray-400">${refSku}</td><td class="p-3 font-bold text-white">${attrStr}</td><td class="p-3 text-primary font-bold">$${v.price}</td><td class="p-3 text-right"><span class="text-red-500 cursor-pointer font-bold hover:text-red-400" onclick="removeVar(${i})">✕</span></td></tr>`);
+            
+            // Usamos DIVS con las mismas clases de columna que el header
+            let rowHtml = `
+                <div class="grid grid-cols-12 gap-2 p-3 hover:bg-gray-800 transition-colors items-center text-sm">
+                    <div class="col-span-3 font-mono text-gray-400 break-all text-xs">${refSku}</div>
+                    <div class="col-span-5 font-bold text-white">${attrStr}</div>
+                    <div class="col-span-2 text-primary font-bold">$${v.price}</div>
+                    <div class="col-span-2 text-right">
+                        <span class="text-red-500 cursor-pointer font-bold hover:text-red-400 text-lg leading-none" onclick="removeVar(${i})">&times;</span>
+                    </div>
+                </div>
+            `;
+            container.append(rowHtml);
         });
     };
 
