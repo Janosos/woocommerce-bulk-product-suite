@@ -1,6 +1,6 @@
 /*
- * Título: Nakama Suite v29 (Templates & Auto-Gallery) By ImperioDev
- * Descripción: Agrega plantillas de precios/tallas complejas y genera automáticamente la galería de producto basada en las fotos de las variaciones.
+ * Título: Nakama Suite v31 (Responsive Margins & Admin Bar Fix) By ImperioDev
+ * Descripción: Ajuste de márgenes de seguridad para la barra de admin de WP y reubicación del lanzador.
  */
 
 // 1. CARGA DE RECURSOS
@@ -20,7 +20,6 @@ function nakama_load_resources() {
             $attributes[] = ['label' => $attr->attribute_label, 'slug' => $attr->attribute_name, 'terms' => $term_names];
         }
 
-        // Categorías con Padre (Desambiguación)
         $cats_raw = get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false]);
         $cats_formatted = [];
         foreach ($cats_raw as $c) {
@@ -40,164 +39,269 @@ function nakama_load_resources() {
     }
 }
 
-// 2. UI
+// 2. UI (AJUSTE MÁRGENES)
 add_action('wp_footer', 'nakama_render_app');
 function nakama_render_app() {
     if (!current_user_can('administrator')) return;
     ?>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Teko:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#FF3333",
+                        "primary-dark": "#cc0000",
+                        "background-dark": "#0A0A0A", 
+                        "surface-dark": "#141414", 
+                        "input-bg": "#1F1F1F",
+                        "border-dark": "#333333"
+                    },
+                    fontFamily: {
+                        display: ["'Teko'", "sans-serif"],
+                        body: ["'Inter'", "sans-serif"],
+                    }
+                },
+            },
+        };
+    </script>
 
     <style>
-        .imperiodev-anim { color: #ff0000; animation: color-cycle 4s linear infinite; display: inline-block; }
-        @keyframes color-cycle { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
-        #nk-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f4f6f8; z-index: 99990; overflow-y: auto; font-family: -apple-system, sans-serif; text-align: left; color: #3c434a; }
-        .media-modal-backdrop { z-index: 999991 !important; } .media-modal { z-index: 999992 !important; }
-        #nk-launcher { position: fixed; bottom: 80px; left: 20px; z-index: 99980; width: 55px; height: 55px; background: #d63638; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 28px; transition: transform 0.2s; }
-        #nk-launcher:hover { transform: scale(1.1); background: #ff0000; }
-        .nk-header { padding: 15px 40px; background: white; border-bottom: 1px solid #dcdcde; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .nk-container { padding: 40px; max-width: 1200px; margin: 0 auto; box-sizing: border-box; }
-        #nk-start-screen { display: flex; gap: 20px; justify-content: center; padding: 40px 0; }
-        .nk-action-card { background: white; border: 1px solid #c3c4c7; border-radius: 8px; padding: 40px; width: 300px; text-align: center; cursor: pointer; transition: all 0.2s; }
-        .nk-action-card:hover { transform: translateY(-5px); border-color: #2271b1; }
-        .nk-action-icon { font-size: 40px; display: block; margin-bottom: 15px; }
-        .nk-action-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; display:block;}
-        #nk-manual-form { display: none; background: white; padding: 30px; border-radius: 8px; border: 1px solid #c3c4c7; max-width: 900px; margin: 0 auto; }
-        .nk-form-row { display: flex; gap: 20px; margin-bottom: 15px; }
-        .nk-form-group { flex: 1; position: relative; }
-        .nk-form-label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #50575e; }
-        .nk-input { width: 100%; padding: 8px; border: 1px solid #8c8f94; border-radius: 4px; box-sizing: border-box; }
-        .nk-input-fixed { background: #eef0f2; color: #646970; font-weight: 600; cursor: not-allowed; }
-        .nk-search-box { width: 100%; padding: 6px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
-        .nk-checkbox-list { height: 100px; overflow-y: auto; border: 1px solid #8c8f94; padding: 5px; border-radius: 4px; background: #fff; }
-        .nk-checkbox-item { display: block; font-size: 12px; margin-bottom: 3px; cursor: pointer; }
-        .nk-generator-box { background: #f6f7f7; padding: 20px; border-radius: 6px; border: 1px solid #dcdcde; margin-bottom: 20px; }
-        .nk-gen-header { font-weight: bold; color: #2271b1; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .nk-datalist-helper { position: absolute; top: 100%; left: 0; width: 100%; max-height: 150px; overflow-y: auto; background: white; border: 1px solid #2271b1; z-index: 50; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 0 0 4px 4px; }
-        .nk-datalist-opt { padding: 8px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #eee; }
-        .nk-datalist-opt:hover { background: #2271b1; color: white; }
-        .nk-table-wrapper { margin-top: 20px; border: 1px solid #ccc; background: white; border-radius: 4px; overflow: hidden; }
-        .nk-table-header { background: #eee; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
-        #nk-staging-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        #nk-staging-table th { background: #f9f9f9; padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-        #nk-staging-table td { padding: 8px; border-bottom: 1px solid #eee; }
-        .nk-btn-remove { color: red; cursor: pointer; font-weight: bold; padding: 0 5px; }
-        .nk-btn-clear { font-size: 11px; color: #d63638; cursor: pointer; background: white; border: 1px solid #d63638; padding: 2px 8px; border-radius: 4px; }
-        .nk-btn-mini { font-size: 10px; background: #2271b1; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer; margin-left: 5px; }
-        .nk-btn-mini:hover { background: #135e96; }
-        .nk-template-bar { margin-bottom: 15px; padding: 10px; background: #e0e0e0; border-radius: 4px; display: flex; gap: 10px; align-items: center; }
-        .nk-btn-tmpl-main { background: #2271b1; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        .nk-btn-tmpl-main:hover { background: #135e96; transform: translateY(-1px); }
-        .product-card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid #ccc; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .product-card.type-variable { border-left-color: #826eb4; } .product-card.type-simple { border-left-color: #2271b1; }
-        .nk-main-info { display: flex; gap: 20px; align-items: flex-start; padding-bottom: 15px; border-bottom: 1px solid #f0f0f1; }
-        .nk-thumb-container { width: 80px; flex-shrink: 0; text-align: center; }
-        .nk-thumb-box-lg { width: 80px; height: 80px; background: #eee; cursor: pointer; position: relative; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; }
-        .nk-thumb-box-lg img { width: 100%; height: 100%; object-fit: cover; }
-        .nk-details { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-        .nk-row-input { width: 100%; padding: 6px 10px; border: 1px solid #8c8f94; border-radius: 4px; display: block; box-sizing: border-box; font-size: 13px; }
-        .nk-desc-wrapper { border: 1px solid #eee; padding: 10px; background: #fcfcfc; border-radius: 4px; }
-        .nk-desc-header { display:flex; justify-content:space-between; margin-bottom:5px; align-items: center; }
-        .nk-desc-area { width: 100%; height: 60px; border: 1px solid #ccc; font-family: inherit; font-size: 12px; resize: vertical; box-sizing: border-box; }
-        .nk-meta-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-        .nk-meta-tag { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; font-size: 11px; color: #50575e; background: #f0f0f1; border: 1px solid #dcdcde; border-radius: 4px; white-space: nowrap; }
-        .nk-btn-template { font-size: 10px !important; line-height: 1 !important; padding: 4px 8px !important; height: auto !important; width: auto !important; background: #fff; border: 1px solid #2271b1; color: #2271b1; border-radius: 3px; cursor: pointer; text-transform: uppercase; font-weight: 600; }
-        .nk-btn-template:hover { background: #2271b1; color: white; }
-        .nk-smart-area { background: #f8f9fa; padding: 15px; border: 1px dashed #ccc; border-radius: 6px; margin-top: 5px; }
-        .nk-thumbs-grid { display: flex; gap: 10px; flex-wrap: wrap; }
-        .nk-thumb-item { display: flex; align-items: center; gap: 8px; background: white; padding: 6px; border: 1px solid #c3c4c7; border-radius: 4px; }
-        .nk-thumb-box-sm { width: 40px; height: 40px; background: #eee; cursor: pointer; border-radius: 3px; overflow: hidden; border: 1px solid #ddd; position: relative; }
-        .nk-thumb-box-sm img { width: 100%; height: 100%; object-fit: cover; }
-        .status-col { min-width: 100px; text-align: right; font-weight: bold; font-size: 12px; color: #666; }
-        #nk-progress-bar-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: #f0f0f1; display: none; }
-        #nk-progress-bar-fill { height: 100%; background: #008a20; width: 0%; transition: width 0.3s; }
+        /* ========================================================= */
+        /* --- 🔧 ZONA DE AJUSTES MANUALES (MARGENES Y POSICION) --- */
+        /* ========================================================= */
+
+        /* 1. POSICIÓN DEL MODAL PRINCIPAL */
+        #nk-modal {
+            /* Distancia desde arriba (Debe ser > 32px para librar barra de admin WP) */
+            top: 40px !important; 
+            
+            /* Distancia desde abajo (Margen inferior) */
+            bottom: 20px !important; 
+            
+            /* Márgenes laterales (izquierda y derecha) */
+            left: 20px !important;
+            right: 20px !important;
+
+            /* Aseguramos que sea fixed para que flote sobre la web */
+            position: fixed !important; 
+            border-radius: 12px !important; /* Bordes redondeados del contenedor externo */
+        }
+
+        /* 2. POSICIÓN DEL BOTÓN COHETE (LANZADOR) */
+        #nk-launcher {
+            /* Qué tan arriba desde el fondo (Auméntalo si quieres que suba más) */
+            bottom: 80px !important; 
+            
+            /* Qué tan pegado a la izquierda (Disminúyelo a 0 si quieres pegarlo total) */
+            left: 17px !important; 
+        }
+
+        /* ========================================================= */
+        /* ---------------- FIN DE AJUSTES MANUALES ---------------- */
+        /* ========================================================= */
+
+        #nk-root { font-family: 'Inter', sans-serif; }
+        #nk-root h1, #nk-root h2, #nk-root h3, #nk-root .font-display { font-family: 'Teko', sans-serif; }
+        
+        #nk-modal ::-webkit-scrollbar { width: 8px; }
+        #nk-modal ::-webkit-scrollbar-track { background: #0A0A0A; }
+        #nk-modal ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        #nk-modal ::-webkit-scrollbar-thumb:hover { background: #FF3333; }
+
+        .nk-anim-pop { animation: nkPop 0.3s ease-out forwards; }
+        @keyframes nkPop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        
+        .nk-input-base {
+            background-color: #1F1F1F !important; border: 1px solid #333 !important; color: white !important;
+            border-radius: 0.375rem !important; padding: 0.5rem 0.75rem !important; width: 100%;
+            transition: all 0.2s;
+        }
+        .nk-input-base:focus { border-color: #FF3333 !important; ring: 1px #FF3333 !important; outline: none; }
+        
+        .nk-btn-primary {
+            background-color: #FF3333 !important; color: white !important; font-family: 'Teko', sans-serif !important;
+            text-transform: uppercase; font-size: 1.25rem !important; padding: 0.5rem 1.5rem !important;
+            border-radius: 0.375rem; transition: all 0.2s; border: none; cursor: pointer;
+        }
+        .nk-btn-primary:hover { background-color: #cc0000 !important; transform: translateY(-1px); }
+
+        .nk-checkbox-list label { color: #ccc; display: block; padding: 2px 0; font-size: 0.9rem; cursor: pointer; }
+        .nk-checkbox-list label:hover { color: #FF3333; }
+        
+        .nk-datalist-helper {
+            position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px; overflow-y: auto;
+            background: #1F1F1F; border: 1px solid #FF3333; z-index: 50; display: none;
+            border-radius: 0 0 6px 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .nk-datalist-opt { padding: 8px 12px; cursor: pointer; color: #eee; font-size: 14px; border-bottom: 1px solid #333; }
+        .nk-datalist-opt:hover { background: #FF3333; color: white; }
+
+        .media-modal { z-index: 999999 !important; }
+        .media-modal-backdrop { z-index: 999998 !important; }
     </style>
 
-    <div id="nk-launcher" title="Abrir Nakama Suite">🚀</div>
-
-    <div id="nk-modal">
-        <div class="nk-header">
-            <div style="font-size: 20px; font-weight: bold;">
-                ⚡ Nakama Suite Import Tool v29 by <span class="imperiodev-anim">ImperioDev</span>
-            </div>
-            <div style="display:flex; gap:10px;">
-                <button class="button" id="nk-reset-btn" style="display:none;">🏠 Inicio</button>
-                <button class="button" onclick="jQuery('#nk-modal').fadeOut()">Cerrar</button>
-                <button class="button button-primary" id="nk-process-btn" style="display:none;">Subir a WooCommerce</button>
-            </div>
-            <div id="nk-progress-bar-container"><div id="nk-progress-bar-fill"></div></div>
+    <div id="nk-root">
+        <div id="nk-launcher" class="fixed w-16 h-16 bg-primary hover:bg-primary-dark text-white rounded-full flex items-center justify-center cursor-pointer shadow-2xl z-[99990] transition-transform hover:scale-110" title="Abrir Nakama Suite">
+            <span class="material-icons-outlined text-3xl">rocket_launch</span>
         </div>
 
-        <div class="nk-container">
-            <div id="nk-start-screen">
-                <div class="nk-action-card" onclick="document.getElementById('nk-csv-input').click()">
-                    <span class="nk-action-icon">📂</span>
-                    <span class="nk-action-title">Importar CSV</span>
-                    <input type="file" id="nk-csv-input" accept=".csv" style="display:none;" />
+        <div id="nk-modal" style="display:none;" class="bg-black/90 backdrop-blur-sm z-[99991] overflow-hidden flex flex-col shadow-2xl border border-gray-800">
+            
+            <div class="bg-black/80 p-4 md:p-6 border-b border-gray-800 flex justify-between items-center shrink-0 backdrop-blur-md">
+                <div>
+                    <h1 class="text-3xl md:text-4xl text-white uppercase font-bold m-0 leading-none">Nakama Suite <span class="text-primary">v31</span></h1>
+                    <p class="text-gray-400 text-xs md:text-sm m-0">Importador de Productos &bull; ImperioDev Edition</p>
                 </div>
-                <div class="nk-action-card" id="nk-btn-manual-mode">
-                    <span class="nk-action-icon">✨</span>
-                    <span class="nk-action-title">Crear Manualmente</span>
+                <div class="flex gap-2 md:gap-3">
+                    <button id="nk-reset-btn" class="hidden px-3 py-1 md:px-4 md:py-2 bg-gray-800 text-white rounded hover:bg-gray-700 font-display uppercase tracking-wide text-sm md:text-base">Inicio</button>
+                    <button onclick="jQuery('#nk-modal').fadeOut()" class="px-3 py-1 md:px-4 md:py-2 border border-gray-700 text-gray-300 rounded hover:text-white hover:border-white transition-colors uppercase font-display tracking-wide text-sm md:text-base">Cerrar</button>
+                    <button id="nk-process-btn" class="hidden nk-btn-primary shadow-lg shadow-red-900/20 text-sm md:text-lg">🚀 Subir</button>
                 </div>
             </div>
 
-            <div id="nk-manual-form">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h2 style="margin-top:0;">Nuevo Producto</h2>
-                    <button class="nk-btn-clear" id="nk-wipe-form">🧹 Limpiar Todo el Formulario</button>
-                </div>
+            <div id="nk-progress-bar-container" class="hidden w-full h-1 bg-gray-800 shrink-0">
+                <div id="nk-progress-bar-fill" class="h-full bg-primary transition-all duration-300 w-0"></div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 md:p-8">
                 
-                <div class="nk-form-row">
-                    <div class="nk-form-group"><label class="nk-form-label">Nombre</label><input type="text" id="man-name" class="nk-input" placeholder="One Pisu"></div>
-                    <div class="nk-form-group"><label class="nk-form-label">SKU Base (Padre)</label><input type="text" id="man-sku" class="nk-input" placeholder="OP-001"></div>
-                </div>
-
-                <div class="nk-form-row">
-                    <div class="nk-form-group"><label class="nk-form-label">Categorías</label><input type="text" class="nk-search-box" placeholder="Buscar..." onkeyup="filterList(this, '#man-cats-list')"><div class="nk-checkbox-list" id="man-cats-list"></div></div>
-                    <div class="nk-form-group"><label class="nk-form-label">Etiquetas</label><input type="text" class="nk-search-box" placeholder="Buscar..." onkeyup="filterList(this, '#man-tags-list')"><div class="nk-checkbox-list" id="man-tags-list"></div></div>
-                </div>
-
-                <div class="nk-generator-box">
-                    <div class="nk-gen-header"><span>🛠️ Definir Variantes</span><button class="nk-btn-clear" id="nk-clear-inputs">Limpiar Campos</button></div>
+                <div id="nk-start-screen" class="flex flex-col md:flex-row gap-6 justify-center py-10 h-full items-center">
+                    <div class="group bg-input-bg border border-gray-700 hover:border-primary p-10 rounded-xl cursor-pointer transition-all hover:-translate-y-2 text-center w-full md:w-80 shadow-lg" onclick="document.getElementById('nk-csv-input').click()">
+                        <span class="material-icons-outlined text-6xl text-gray-500 group-hover:text-primary mb-4 transition-colors">folder_open</span>
+                        <h3 class="text-2xl text-white uppercase font-bold">Importar CSV</h3>
+                        <p class="text-gray-500 text-sm">Carga masiva desde archivo</p>
+                        <input type="file" id="nk-csv-input" accept=".csv" class="hidden" />
+                    </div>
                     
-                    <div class="nk-template-bar">
-                        <span>⚡ Plantillas Rápidas: </span>
-                        <button class="nk-btn-tmpl-main" onclick="applyTemplate_SemitonoNegro()">⚫ Semitono/Estampado (Negro)</button>
+                    <div id="nk-btn-manual-mode" class="group bg-input-bg border border-gray-700 hover:border-primary p-10 rounded-xl cursor-pointer transition-all hover:-translate-y-2 text-center w-full md:w-80 shadow-lg">
+                        <span class="material-icons-outlined text-6xl text-gray-500 group-hover:text-primary mb-4 transition-colors">edit_note</span>
+                        <h3 class="text-2xl text-white uppercase font-bold">Creación Manual</h3>
+                        <p class="text-gray-500 text-sm">Constructor visual de productos</p>
+                    </div>
+                </div>
+
+                <div id="nk-manual-form" class="hidden max-w-5xl mx-auto pb-10">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl text-white uppercase m-0">Configuración</h2>
+                        <button id="nk-wipe-form" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 uppercase font-bold tracking-wide transition-colors"><span class="material-icons-outlined text-base">delete_sweep</span> Limpiar Todo</button>
                     </div>
 
-                    <div class="nk-form-row">
-                        <div class="nk-form-group" style="flex:0.3;"><label class="nk-form-label">Atributo</label><input type="text" class="nk-input nk-input-fixed" value="Color" readonly></div>
-                        <div class="nk-form-group"><label class="nk-form-label">Valores</label><input type="text" id="man-attr1-vals" class="nk-input" placeholder="Ej: Negro, Blanco" autocomplete="off"><div class="nk-datalist-helper" id="list-color"></div></div>
-                    </div>
-                    <div class="nk-form-row">
-                        <div class="nk-form-group" style="flex:0.3;"><label class="nk-form-label">Atributo</label><input type="text" class="nk-input nk-input-fixed" value="Estilo" readonly></div>
-                        <div class="nk-form-group"><label class="nk-form-label">Valores</label><input type="text" id="man-attr2-vals" class="nk-input" placeholder="Ej: Oversize, T-shirt" autocomplete="off"><div class="nk-datalist-helper" id="list-estilo"></div></div>
-                    </div>
-                    <div class="nk-form-row">
-                        <div class="nk-form-group" style="flex:0.3;"><label class="nk-form-label">Atributo</label><input type="text" class="nk-input nk-input-fixed" value="Talla" readonly></div>
-                        <div class="nk-form-group">
-                            <label class="nk-form-label">Valores 
-                                <button type="button" class="nk-btn-mini" onclick="fillSizes('normal')">S-XL</button>
-                                <button type="button" class="nk-btn-mini" onclick="fillSizes('full')">S-3XL</button>
-                            </label>
-                            <input type="text" id="man-attr3-vals" class="nk-input" placeholder="Ej: S, M, L" autocomplete="off"><div class="nk-datalist-helper" id="list-talla"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-gray-400 text-xs uppercase font-bold mb-2">Nombre del Producto</label>
+                            <input type="text" id="man-name" class="nk-input-base" placeholder="Ej: Camiseta Luffy Gear 5">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-xs uppercase font-bold mb-2">SKU Base (Padre)</label>
+                            <input type="text" id="man-sku" class="nk-input-base" placeholder="Ej: OP-LUFFY-G5">
                         </div>
                     </div>
-                    
-                    <div class="nk-form-row" style="align-items: flex-end; margin-top:20px;">
-                        <div class="nk-form-group"><label class="nk-form-label">Precio Lote ($)</label><input type="number" id="man-batch-price" class="nk-input" placeholder="500"></div>
-                        <div class="nk-form-group"><button class="button" id="nk-add-batch" style="width:100%;">➕ Añadir a Tabla</button></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <label class="block text-gray-400 text-xs uppercase font-bold mb-2">Categorías</label>
+                            <input type="text" class="nk-input-base mb-2" placeholder="Filtrar categorías..." onkeyup="filterList(this, '#man-cats-list')">
+                            <div id="man-cats-list" class="nk-checkbox-list h-32 overflow-y-auto bg-input-bg border border-gray-700 rounded p-2 custom-scroll"></div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-xs uppercase font-bold mb-2">Etiquetas</label>
+                            <input type="text" class="nk-input-base mb-2" placeholder="Filtrar etiquetas..." onkeyup="filterList(this, '#man-tags-list')">
+                            <div id="man-tags-list" class="nk-checkbox-list h-32 overflow-y-auto bg-input-bg border border-gray-700 rounded p-2 custom-scroll"></div>
+                        </div>
                     </div>
-                    
-                    <div id="nk-staging-wrapper" class="nk-table-wrapper" style="display:none;">
-                        <div class="nk-table-header"><strong style="font-size:12px;">Variantes Pendientes</strong><button class="nk-btn-clear" id="nk-clear-table">🗑️ Borrar</button></div>
-                        <table id="nk-staging-table"><thead><tr><th>SKU</th><th>Atributos</th><th>Precio</th><th></th></tr></thead><tbody></tbody></table>
+
+                    <div class="bg-black/30 border border-dashed border-gray-700 rounded-xl p-6 relative">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-gray-800 gap-4">
+                            <span class="text-primary font-display text-xl uppercase tracking-wider flex items-center gap-2"><span class="material-icons-outlined">tune</span> Generador de Variantes</span>
+                            
+                            <div class="flex gap-2">
+                                <button class="px-3 py-2 bg-gray-800 hover:bg-primary text-white text-xs rounded uppercase font-bold transition-colors flex items-center gap-1" onclick="applyTemplate_SemitonoNegro()"><span class="material-icons-outlined text-sm">flash_on</span> Plantilla Semitono</button>
+                                <button id="nk-clear-inputs" class="px-3 py-2 border border-gray-600 hover:border-white text-gray-400 hover:text-white text-xs rounded uppercase font-bold transition-colors">Limpiar Campos</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                                <div class="w-full md:w-24 shrink-0"><span class="text-gray-500 text-xs uppercase font-bold">Color</span></div>
+                                <div class="relative flex-1">
+                                    <input type="text" id="man-attr1-vals" class="nk-input-base" placeholder="Ej: Negro, Blanco" autocomplete="off">
+                                    <div class="nk-datalist-helper" id="list-color"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                                <div class="w-full md:w-24 shrink-0"><span class="text-gray-500 text-xs uppercase font-bold">Estilo</span></div>
+                                <div class="relative flex-1">
+                                    <input type="text" id="man-attr2-vals" class="nk-input-base" placeholder="Ej: Oversize, T-shirt" autocomplete="off">
+                                    <div class="nk-datalist-helper" id="list-estilo"></div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                                <div class="w-full md:w-24 shrink-0 flex justify-between md:block">
+                                    <span class="text-gray-500 text-xs uppercase font-bold">Talla</span>
+                                    <div class="md:hidden flex gap-1">
+                                        <button type="button" class="bg-gray-700 text-[10px] px-2 py-0.5 rounded text-white" onclick="fillSizes('normal')">S-XL</button>
+                                        <button type="button" class="bg-gray-700 text-[10px] px-2 py-0.5 rounded text-white" onclick="fillSizes('full')">S-3XL</button>
+                                    </div>
+                                </div>
+                                <div class="relative flex-1">
+                                    <div class="hidden md:flex absolute right-2 top-1.5 gap-1 z-10">
+                                        <button type="button" class="bg-gray-800 hover:bg-primary border border-gray-600 text-[10px] px-2 py-0.5 rounded text-white uppercase transition-colors" onclick="fillSizes('normal')">S-XL</button>
+                                        <button type="button" class="bg-gray-800 hover:bg-primary border border-gray-600 text-[10px] px-2 py-0.5 rounded text-white uppercase transition-colors" onclick="fillSizes('full')">S-3XL</button>
+                                    </div>
+                                    <input type="text" id="man-attr3-vals" class="nk-input-base" placeholder="Ej: S, M, L" autocomplete="off">
+                                    <div class="nk-datalist-helper" id="list-talla"></div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col md:flex-row gap-4 items-end mt-6 pt-6 border-t border-gray-800">
+                                <div class="w-full md:w-1/3">
+                                    <label class="text-xs uppercase text-gray-500 font-bold mb-1 block">Precio del Lote ($)</label>
+                                    <input type="number" id="man-batch-price" class="nk-input-base text-xl font-bold text-primary" placeholder="0.00">
+                                </div>
+                                <div class="w-full md:flex-1">
+                                    <button id="nk-add-batch" class="w-full py-3 bg-gray-800 hover:bg-white hover:text-black text-white rounded font-display uppercase text-xl transition-colors border border-gray-600 shadow-md">➕ Generar Variantes</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="nk-staging-wrapper" class="mt-8 hidden">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="text-white font-bold text-sm uppercase flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> Previsualización</h4>
+                                <button id="nk-clear-table" class="text-red-500 text-xs uppercase font-bold hover:text-red-400 transition-colors">Borrar Todo</button>
+                            </div>
+                            <div class="bg-black rounded border border-gray-800 overflow-hidden max-h-60 overflow-y-auto custom-scroll">
+                                <table id="nk-staging-table" class="w-full text-left text-sm text-gray-300">
+                                    <thead class="bg-gray-900 text-gray-500 uppercase text-xs sticky top-0">
+                                        <tr>
+    <th class="p-3 w-[100%]">SKU</th>
+    
+    <th class="p-3 w-[70%]">Combinación</th>
+    
+    <th class="p-3 w-[20%]">Precio</th>
+    
+    <th class="p-3 w-[10%] text-right">Borrar</th>
+</tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-800"></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
+
+                    <button id="nk-finalize-manual" class="nk-btn-primary w-full mt-8 py-4 text-2xl shadow-xl shadow-red-900/30 hover:scale-[1.01] active:scale-[0.99]">✅ Confirmar y Crear Tarjeta</button>
                 </div>
 
-                <button class="button button-primary button-large" id="nk-finalize-manual" style="width:100%;">✅ Crear Tarjeta</button>
-            </div>
+                <div id="nk-products-list" class="hidden grid gap-6 pb-20 max-w-5xl mx-auto"></div>
 
-            <div id="nk-products-list" style="display:none;"></div>
+            </div>
         </div>
     </div>
 
@@ -215,43 +319,30 @@ function nakama_render_app() {
         });
     }
 
-    // --- FUNCIONES DE PLANTILLAS Y ATAJOS ---
+    // Funciones globales
     window.fillSizes = function(type) {
         let vals = (type === 'normal') ? 'S, M, L, XL' : 'S, M, L, XL, 2XL, 3XL';
         jQuery('#man-attr3-vals').val(vals);
     };
 
     window.applyTemplate_SemitonoNegro = function() {
-        if(!confirm('¿Aplicar plantilla Semitono (Negro)? Esto borrará las variantes actuales.')) return;
-        
-        pendingVariations = []; // Reset
+        if(!confirm('¿Aplicar plantilla Semitono (Negro)?')) return;
+        pendingVariations = []; 
         let skuBase = jQuery('#man-sku').val();
-        
-        // Configuración basada en tu tabla
         const CONFIG = [
-            { st: 'T-shirt',   sz: ['S', 'M', 'L', 'XL'], pr: '299' },
-            { st: 'T-shirt',   sz: ['2XL'],               pr: '330' },
-            { st: 'Oversize',  sz: ['S', 'M', 'L', 'XL'], pr: '399' },
-            { st: 'Oversize',  sz: ['2XL', '3XL'],        pr: '439' },
-            { st: 'Acid Wash', sz: ['S', 'M', 'L', 'XL'], pr: '319' },
-            { st: 'Acid Wash', sz: ['2XL'],               pr: '339' },
-            { st: 'Tank Top',  sz: ['S', 'M', 'L', 'XL'], pr: '289' },
-            { st: 'Tank Top',  sz: ['2XL', '3XL'],        pr: '309' },
-            { st: 'Sudadera',  sz: ['S', 'M', 'L', 'XL'], pr: '399' },
-            { st: 'Sudadera',  sz: ['2XL'],               pr: '439' }
+            { st: 'T-shirt',   sz: ['S', 'M', 'L', 'XL'], pr: '299' }, { st: 'T-shirt',   sz: ['2XL'], pr: '330' },
+            { st: 'Oversize',  sz: ['S', 'M', 'L', 'XL'], pr: '399' }, { st: 'Oversize',  sz: ['2XL', '3XL'], pr: '439' },
+            { st: 'Acid Wash', sz: ['S', 'M', 'L', 'XL'], pr: '319' }, { st: 'Acid Wash', sz: ['2XL'], pr: '339' },
+            { st: 'Tank Top',  sz: ['S', 'M', 'L', 'XL'], pr: '289' }, { st: 'Tank Top',  sz: ['2XL', '3XL'], pr: '309' },
+            { st: 'Sudadera',  sz: ['S', 'M', 'L', 'XL'], pr: '399' }, { st: 'Sudadera',  sz: ['2XL'], pr: '439' }
         ];
-
         CONFIG.forEach(grp => {
             grp.sz.forEach(size => {
                 let attrs = { 'Color': 'Negro', 'Estilo': grp.st, 'Talla': size };
                 pendingVariations.push({ sku: skuBase, price: grp.pr, attributes: attrs, image_id: '', shipping: DEFAULT_SHIP });
             });
         });
-
-        // Limpiar inputs visuales para evitar confusion
         jQuery('#man-attr1-vals, #man-attr2-vals, #man-attr3-vals, #man-batch-price').val('');
-        
-        // Renderizar tabla
         renderStagingTable();
     };
 
@@ -259,9 +350,9 @@ function nakama_render_app() {
         let tbody = jQuery('#nk-staging-table tbody'); tbody.empty();
         if(pendingVariations.length > 0) { jQuery('#nk-staging-wrapper').show(); } else { jQuery('#nk-staging-wrapper').hide(); }
         pendingVariations.forEach((v, i) => {
-            let attrStr = Object.values(v.attributes).join(' / ');
+            let attrStr = Object.values(v.attributes).join(' <span class="text-gray-600">/</span> ');
             let refSku = jQuery('#man-sku').val();
-            tbody.append(`<tr><td>${refSku}</td><td>${attrStr}</td><td>$${v.price}</td><td><span class="nk-btn-remove" onclick="removeVar(${i})">X</span></td></tr>`);
+            tbody.append(`<tr class="hover:bg-gray-800 transition-colors"><td class="p-3 font-mono text-xs text-gray-400">${refSku}</td><td class="p-3 font-bold text-white">${attrStr}</td><td class="p-3 text-primary font-bold">$${v.price}</td><td class="p-3 text-right"><span class="text-red-500 cursor-pointer font-bold hover:text-red-400" onclick="removeVar(${i})">✕</span></td></tr>`);
         });
     };
 
@@ -271,8 +362,8 @@ function nakama_render_app() {
 
         function init() {
             if(typeof NK_DATA !== 'undefined') {
-                $('#man-cats-list').html(NK_DATA.cats.map(c => `<label class="nk-checkbox-item"><input type="checkbox" value="${c.name}" class="cat-chk"> ${c.display}</label>`).join(''));
-                $('#man-tags-list').html(NK_DATA.tags.map(t => `<label class="nk-checkbox-item"><input type="checkbox" value="${t.name}" class="tag-chk"> ${t.name}</label>`).join(''));
+                $('#man-cats-list').html(NK_DATA.cats.map(c => `<label><input type="checkbox" value="${c.name}" class="cat-chk accent-primary mr-2"> ${c.display}</label>`).join(''));
+                $('#man-tags-list').html(NK_DATA.tags.map(t => `<label><input type="checkbox" value="${t.name}" class="tag-chk accent-primary mr-2"> ${t.name}</label>`).join(''));
                 bindSuggestions('Color', '#list-color', '#man-attr1-vals');
                 bindSuggestions('Estilo', '#list-estilo', '#man-attr2-vals');
                 bindSuggestions('Talla', '#list-talla', '#man-attr3-vals');
@@ -282,7 +373,6 @@ function nakama_render_app() {
         function bindSuggestions(keyword, listId, inputId) {
             let found = NK_DATA.attrs.find(a => a.label.toLowerCase().includes(keyword.toLowerCase()));
             if(!found && keyword === 'Talla') found = NK_DATA.attrs.find(a => a.slug.includes('size'));
-
             if(found && found.terms.length > 0) {
                 let html = found.terms.map(t => `<div class="nk-datalist-opt">${t}</div>`).join('');
                 $(listId).html(html);
@@ -296,16 +386,15 @@ function nakama_render_app() {
         }
         init();
 
-        $('#nk-launcher').click(function() { $('#nk-modal').fadeIn(); });
+        $('#nk-launcher').click(function() { $('#nk-modal').fadeIn().addClass('flex'); });
         $('#nk-btn-manual-mode').click(function() { $('#nk-start-screen').hide(); $('#nk-manual-form').fadeIn(); $('#nk-reset-btn').show(); });
         
         $('#nk-wipe-form').click(function() {
-            if(confirm('¿Borrar TODO el formulario (Nombre, SKU, Cats y Variantes)?')) {
+            if(confirm('¿LIMPIEZA TOTAL?')) {
                 $('#man-name, #man-sku').val('');
                 $('.cat-chk, .tag-chk').prop('checked', false);
                 $('#man-attr1-vals, #man-attr2-vals, #man-attr3-vals, #man-batch-price').val('');
-                pendingVariations = []; 
-                renderStagingTable();
+                pendingVariations = []; renderStagingTable();
             }
         });
 
@@ -337,6 +426,7 @@ function nakama_render_app() {
             let name = $('#man-name').val(); let sku = $('#man-sku').val();
             let cats = []; $('.cat-chk:checked').each(function(){ cats.push($(this).val()); });
             let tags = []; $('.tag-chk:checked').each(function(){ tags.push($(this).val()); });
+            
             let rawAttrs = {};
             pendingVariations.forEach(v => {
                 for(let [k, val] of Object.entries(v.attributes)) {
@@ -344,17 +434,18 @@ function nakama_render_app() {
                 }
             });
             for(let k in rawAttrs) rawAttrs[k] = Array.from(rawAttrs[k]).join(', ');
+
             let prod = {
                 temp_id: Math.random(), type: 'variable', name: name, sku: sku, price: '',
                 description: TEMPLATE_DESC, categories: cats.join(', '), tags: tags.join(', '),
                 shipping: DEFAULT_SHIP, raw_attributes: rawAttrs, variations: pendingVariations, image_groups: {}, image_id: '', exists_in_db: false
             };
-            processSingleProduct(prod); $('#nk-manual-form').hide(); $('#nk-process-btn').show();
+            processSingleProduct(prod); $('#nk-manual-form').hide(); $('#nk-process-btn').removeClass('hidden').show();
         });
 
         $('#nk-csv-input').change(function(e) {
             if(!e.target.files[0]) return; 
-            $('#nk-start-screen').hide(); $('#nk-products-list').html('<p style="text-align:center;">Leyendo...</p>').show(); $('#nk-reset-btn').show();
+            $('#nk-start-screen').hide(); $('#nk-products-list').html('<p class="text-white text-center mt-10">Leyendo...</p>').show(); $('#nk-reset-btn').show();
             Papa.parse(e.target.files[0], { header: false, skipEmptyLines: true, encoding: 'ISO-8859-1', complete: function(r) { processCSVData(r.data); } });
         });
 
@@ -375,7 +466,7 @@ function nakama_render_app() {
             checkSkusInDb(parsedProducts); 
         }
 
-        // --- CSV LOGIC ---
+        // CSV Logic
         function findIdx(h, k, e=[]) { 
             for (let i = 0; i < h.length; i++) { 
                 let c = (h[i] || '').toLowerCase(); 
@@ -387,17 +478,11 @@ function nakama_render_app() {
             parsedProducts = []; 
             let headers = rows[0];
             let map = { 
-                type: findIdx(headers, ['tipo','type']), 
-                sku: findIdx(headers, ['sku']), 
-                name: findIdx(headers, ['nombre','name']), 
+                type: findIdx(headers, ['tipo','type']), sku: findIdx(headers, ['sku']), name: findIdx(headers, ['nombre','name']), 
                 price: findIdx(headers, ['precio normal', 'regular price'], ['rebajado', 'sale']), 
-                cat: findIdx(headers, ['categor', 'category'], ['catálogo']), 
-                desc: findIdx(headers, ['descrip', 'description'], ['corta']), 
-                tags: findIdx(headers, ['etiqueta']), 
-                weight: findIdx(headers, ['peso']), 
-                len: findIdx(headers, ['longitud']), 
-                width: findIdx(headers, ['anchura']), 
-                height: findIdx(headers, ['altura']) 
+                cat: findIdx(headers, ['categor', 'category'], ['catálogo']), desc: findIdx(headers, ['descrip', 'description'], ['corta']), 
+                tags: findIdx(headers, ['etiqueta']), weight: findIdx(headers, ['peso']), len: findIdx(headers, ['longitud']), 
+                width: findIdx(headers, ['anchura']), height: findIdx(headers, ['altura']) 
             };
             
             let localItems = []; let currentParent=null;
@@ -418,31 +503,47 @@ function nakama_render_app() {
         function groupVariationsByStyle(vars) { let g={}; vars.forEach(v=>{ let p=[]; for(let [k,val] of Object.entries(v.attributes)){ if(!k.toLowerCase().includes('talla')&&!k.toLowerCase().includes('size')) p.push(val); } let key=p.length>0?p.join(' / '):'General'; if(!g[key])g[key]={label:key,image_id:'',indices:[]}; g[key].indices.push(v); }); return g; }
         function checkSkusInDb(products) { let skus=products.map(p=>p.sku).filter(s=>s); if(skus.length===0){renderUI(); return;} $.post(NK_AJAX_URL, {action:'nakama_check_skus', skus:skus}, function(res){ if(res.success){ let ex=res.data; products.forEach(p=>{ if(ex.includes(p.sku)) p.exists_in_db=true; }); } renderUI(); }); }
 
+        // Render Cards (Dark Mode)
         function renderUI() {
-            let c=$('#nk-products-list').empty().show(); $('#nk-process-btn').show();
+            let c=$('#nk-products-list').empty().show(); $('#nk-process-btn').removeClass('hidden');
             parsedProducts.forEach((p,i)=>{
                 let tL=p.type==='variable'?'Variable':'Simple';
-                let imH=''; if(p.type==='variable' && Object.keys(p.image_groups).length > 0){ let th=''; for(let [k,g] of Object.entries(p.image_groups)) th+=`<div class="nk-thumb-item"><div class="nk-thumb-box-sm" onclick="grpImg(${i},'${k}',this)"><span>+</span><img style="display:none"></div><div><div style="font-size:11px; font-weight:bold;">${g.label}</div><div style="font-size:10px;">${g.indices.length} vars</div></div></div>`; imH=`<div class="nk-smart-area"><div class="nk-smart-title">📸 Fotos por Estilo</div><div class="nk-thumbs-grid">${th}</div></div>`; }
-                let dup=p.exists_in_db?'<span class="duplicate-label">⚠️ EXISTE</span>':'';
+                let imH=''; if(p.type==='variable' && Object.keys(p.image_groups).length > 0){ let th=''; for(let [k,g] of Object.entries(p.image_groups)) th+=`<div class="bg-gray-900 border border-gray-700 rounded p-2 flex items-center gap-3"><div class="w-10 h-10 bg-black rounded cursor-pointer relative overflow-hidden border border-gray-600 hover:border-primary" onclick="grpImg(${i},'${k}',this)"><span class="absolute inset-0 flex items-center justify-center text-gray-500 hover:text-white">+</span><img style="display:none" class="w-full h-full object-cover"></div><div><div class="text-xs font-bold text-white">${g.label}</div><div class="text-[10px] text-gray-500">${g.indices.length} vars</div></div></div>`; imH=`<div class="mt-4 bg-black/50 p-4 rounded border border-dashed border-gray-700"><div class="text-xs font-bold text-gray-400 uppercase mb-2">📸 Fotos por Estilo</div><div class="flex flex-wrap gap-2">${th}</div></div>`; }
+                let dup=p.exists_in_db?'<span class="bg-red-900 text-red-200 text-xs px-2 py-1 rounded font-bold uppercase">⚠️ Ya existe</span>':'';
                 let s = p.shipping;
-                let shipInfo = (s.weight || s.len) ? `📦 ${s.weight}kg | ${s.len}x${s.width}x${s.height}` : `<span style="color:#aaa">Sin datos envío</span>`;
+                let shipInfo = (s.weight || s.len) ? `📦 ${s.weight}kg | ${s.len}x${s.width}x${s.height}` : `<span class="text-gray-600">Sin envío</span>`;
 
-                let html=`<div class="product-card type-${p.type} ${p.exists_in_db?'duplicate-sku':''}">
-                    ${dup}
-                    <div class="nk-main-info">
-                        <div class="nk-thumb-container"><div class="nk-thumb-box-lg" onclick="mainImg(${i},this)"><span>Foto</span><img style="display:none"></div></div>
-                        <div class="nk-details">
-                            <div style="display:flex; justify-content:space-between;"><div><strong style="color:#2271b1;font-size:11px;text-transform:uppercase;">${tL}</strong> <strong>${p.sku}</strong></div></div>
-                            <input type="text" class="nk-row-input" id="nm-${i}" value="${p.name}" style="font-weight:bold;">
-                            ${p.is_variable_price?`<input type="text" class="nk-row-input" value="${p.display_price}" disabled style="background:#f0f0f1;" title="Precio calculado de variaciones">`:`<input type="text" class="nk-row-input" id="pr-${i}" value="${p.display_price}">`}
-                            <div class="nk-meta-row"><span class="nk-meta-tag">📁 ${p.categories||'Sin Cat'}</span>${p.tags?`<span class="nk-meta-tag">🏷️ ${p.tags}</span>`:''}<span class="nk-meta-tag">${shipInfo}</span></div>
-                            <div class="nk-desc-wrapper">
-                                <div class="nk-desc-header"><label style="font-size:10px;font-weight:bold;color:#666;">DESCRIPCIÓN</label><button class="nk-btn-template" onclick="tpl(${i})">✨ Usar Plantilla</button></div>
-                                <textarea id="desc-${i}" class="nk-desc-area">${p.description}</textarea>
+                let html=`<div class="bg-surface-dark border ${p.exists_in_db ? 'border-red-900' : 'border-gray-800'} rounded-xl p-6 shadow-lg flex flex-col relative overflow-hidden">
+                    ${p.exists_in_db ? '<div class="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold px-3 py-1 uppercase rounded-bl-lg">Duplicado</div>' : ''}
+                    <div class="flex gap-6 items-start border-b border-gray-800 pb-4 mb-4">
+                        <div class="w-24 h-24 bg-black rounded-lg border border-gray-700 flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden relative" onclick="mainImg(${i},this)">
+                            <span class="text-gray-600 text-xs uppercase font-bold">Foto</span>
+                            <img style="display:none" class="absolute inset-0 w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between mb-2">
+                                <div><span class="text-primary font-display uppercase text-lg">${tL}</span> <span class="text-gray-400 font-mono text-sm ml-2">${p.sku}</span></div>
+                            </div>
+                            <input type="text" class="nk-input-base text-lg font-bold mb-2" id="nm-${i}" value="${p.name}">
+                            ${p.is_variable_price?`<input type="text" class="nk-input-base text-gray-500 cursor-not-allowed" value="${p.display_price}" disabled>`:`<input type="text" class="nk-input-base text-primary font-bold" id="pr-${i}" value="${p.display_price}">`}
+                            
+                            <div class="flex gap-2 mt-3 flex-wrap">
+                                <span class="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded border border-gray-700">📁 ${p.categories||'Sin Cat'}</span>
+                                ${p.tags?`<span class="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded border border-gray-700">🏷️ ${p.tags}</span>`:''}
+                                <span class="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded border border-gray-700">${shipInfo}</span>
                             </div>
                         </div>
-                        <div class="status-col" id="st-${i}">${p.exists_in_db?'<span style="color:red">Omitir</span>':'Pendiente'}</div>
-                    </div>${imH}
+                        <div class="w-24 text-right font-bold text-sm text-gray-500" id="st-${i}">${p.exists_in_db?'<span class="text-red-500">Omitir</span>':'Pendiente'}</div>
+                    </div>
+                    
+                    <div class="bg-gray-900/50 p-4 rounded border border-gray-800">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase">Descripción</label>
+                            <button class="text-primary text-xs uppercase font-bold hover:text-white" onclick="tpl(${i})">✨ Usar Plantilla</button>
+                        </div>
+                        <textarea id="desc-${i}" class="nk-input-base h-20 text-sm">${p.description}</textarea>
+                    </div>
+                    ${imH}
                 </div>`;
                 c.append(html);
             });
@@ -452,17 +553,32 @@ function nakama_render_app() {
         window.mainImg=function(i,el){ let f=wp.media({multiple:false}); f.on('select',function(){ let a=f.state().get('selection').first().toJSON(); parsedProducts[i].image_id=a.id; $(el).find('img').attr('src',a.url).show(); $(el).find('span').hide(); }); f.open(); };
         window.grpImg=function(i,k,el){ let f=wp.media({multiple:false}); f.on('select',function(){ let a=f.state().get('selection').first().toJSON(); parsedProducts[i].image_groups[k].indices.forEach(v=>v.image_id=a.id); $(el).find('img').attr('src',a.url).show(); $(el).find('span').hide(); }); f.open(); };
         
-        $('#nk-process-btn').click(function(){ let b=$(this); b.prop('disabled',true).text('Procesando...'); $('#nk-progress-bar-container').show(); runQueue(0); });
+        $('#nk-process-btn').click(function(){ 
+            let b=$(this); b.prop('disabled',true).text('Procesando...'); 
+            $('#nk-progress-bar-container').removeClass('hidden'); 
+            runQueue(0); 
+        });
+
         function runQueue(i){
-            let pct=Math.round((i/parsedProducts.length)*100); $('#nk-progress-bar-fill').css('width',pct+'%');
-            if(i>=parsedProducts.length){ alert('Listo'); $('#nk-process-btn').prop('disabled',false).text('Subir'); setTimeout(()=>{ $('#nk-progress-bar-container').hide(); },1000); return; }
+            let pct=Math.round((i/parsedProducts.length)*100); 
+            $('#nk-progress-bar-fill').css('width',pct+'%');
+            
+            if(i>=parsedProducts.length){ 
+                alert('¡PROCESO COMPLETADO NAKAMA! 🏴‍☠️'); 
+                $('#nk-process-btn').prop('disabled',false).text('🚀 Subir a WooCommerce'); 
+                setTimeout(()=>{ $('#nk-progress-bar-container').addClass('hidden'); },1000); 
+                return; 
+            }
+            
             let p=parsedProducts[i];
-            if(p.exists_in_db){ $('#st-'+i).html('<span style="color:orange">Omitido</span>'); runQueue(i+1); return; }
+            if(p.exists_in_db){ $('#st-'+i).html('<span class="text-orange-500">Omitido</span>'); runQueue(i+1); return; }
+            
             p.name=$('#nm-'+i).val(); p.description=$('#desc-'+i).val(); if(!p.is_variable_price) p.price=$('#pr-'+i).val();
-            $('#st-'+i).html('<span style="color:blue">Subiendo...</span>');
+            $('#st-'+i).html('<span class="text-blue-400 animate-pulse">Subiendo...</span>');
+            
             $.post(NK_AJAX_URL, {action:'nakama_create_product', nonce:'<?php echo wp_create_nonce("nk_import_nonce"); ?>', data:p}, function(r){
-                if(r.success) $('#st-'+i).html('<span style="color:green">OK</span>'); else $('#st-'+i).html('<span style="color:red">Error</span>'); runQueue(i+1);
-            }).fail(function(){ $('#st-'+i).html('<span style="color:red">Red</span>'); runQueue(i+1); });
+                if(r.success) $('#st-'+i).html('<span class="text-green-500">OK</span>'); else $('#st-'+i).html('<span class="text-red-500">Error</span>'); runQueue(i+1);
+            }).fail(function(){ $('#st-'+i).html('<span class="text-red-500">Red</span>'); runQueue(i+1); });
         }
     });
     </script>
@@ -471,7 +587,7 @@ function nakama_render_app() {
 
 add_action('wp_ajax_nakama_check_skus', function() { $s=$_POST['skus']; $f=[]; foreach($s as $k) if(wc_get_product_id_by_sku($k)) $f[]=$k; wp_send_json_success($f); });
 
-// 3. BACKEND PROCESSING (AUTO GALLERY + TEMPLATES)
+// 3. BACKEND PROCESSING (GALLERY DEDUPLICATION FIX)
 add_action('wp_ajax_nakama_create_product', function() {
     check_ajax_referer('nk_import_nonce', 'nonce'); if(!current_user_can('manage_woocommerce')) wp_send_json_error();
     $d=$_POST['data']; try {
@@ -483,7 +599,7 @@ add_action('wp_ajax_nakama_create_product', function() {
         if(!empty($d['tags'])) $p->set_tag_ids(nakama_get_ids($d['tags'],'product_tag'));
         if(!empty($d['shipping'])){ $s=$d['shipping']; if($s['weight'])$p->set_weight($s['weight']); if($s['len'])$p->set_length($s['len']); if($s['width'])$p->set_width($s['width']); if($s['height'])$p->set_height($s['height']); }
         
-        // ATRIBUTOS
+        // Atributos
         if(!empty($d['raw_attributes'])&&$d['type']==='variable'){ 
             $aa=[]; 
             $attribute_order = ['pa_color' => 1, 'pa_estilo' => 2, 'pa_size' => 3];
@@ -517,9 +633,9 @@ add_action('wp_ajax_nakama_create_product', function() {
         
         $pid=$p->save();
         
-        // VARIACIONES Y GALERÍA
+        // Variables
         $min_p = null; $max_p = null; 
-        $gallery_ids = []; // Colección para galería
+        $gallery_ids = []; 
 
         if($d['type']==='variable'&&!empty($d['variations'])){
             foreach($d['variations'] as $v){
@@ -549,20 +665,23 @@ add_action('wp_ajax_nakama_create_product', function() {
                 if(!empty($v['image_id'])) {
                     $img_id = absint($v['image_id']);
                     $vr->set_image_id($img_id);
-                    $gallery_ids[] = $img_id; // Agregar a lista de galería
+                    $gallery_ids[] = $img_id; 
                 }
 
                 if(!empty($v['shipping'])){ $s=$v['shipping']; if($s['weight'])$vr->set_weight($s['weight']); if($s['len'])$vr->set_length($s['len']); if($s['width'])$vr->set_width($s['width']); if($s['height'])$vr->set_height($s['height']); }
                 $vr->set_status('publish'); $vr->save();
             }
 
-            // --- AUTO GALLERY FEATURE ---
-            // Asignamos todas las imágenes de variantes a la galería del padre
+            // --- GALLERY FIX: ELIMINAR DUPLICIDAD IMAGEN PRINCIPAL ---
             if(!empty($gallery_ids)) {
                 $unique_gallery = array_unique($gallery_ids);
-                // Opcional: Si quieres excluir la imagen principal de la galería, descomenta:
-                // $main_img = $p->get_image_id();
-                // $unique_gallery = array_diff($unique_gallery, [$main_img]);
+                $main_img_id = $p->get_image_id(); // Obtener ID de la destacada
+                
+                // Si existe imagen principal, quitarla del array de galería
+                if($main_img_id) {
+                    $unique_gallery = array_diff($unique_gallery, array($main_img_id));
+                }
+                
                 $pf = wc_get_product($pid);
                 $pf->set_gallery_image_ids($unique_gallery);
                 $pf->save();
@@ -575,7 +694,6 @@ add_action('wp_ajax_nakama_create_product', function() {
                 update_post_meta($pid, '_max_variation_price', $max_p);
                 update_post_meta($pid, '_min_variation_regular_price', $min_p);
                 update_post_meta($pid, '_max_variation_regular_price', $max_p);
-                
                 $pf = wc_get_product($pid);
                 $pf->save(); 
             }
