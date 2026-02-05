@@ -1,6 +1,6 @@
 /*
- * Título: Nakama Suite v33 (Grid Layout Fix) By ImperioDev
- * Descripción: Reemplazo de tablas HTML por CSS Grid para garantizar alineación perfecta de columnas y encabezados.
+ * Título: Nakama Suite v34 (Dark/Light Toggle) By ImperioDev
+ * Descripción: Agrega interruptor de modo claro/oscuro con persistencia de memoria local.
  */
 
 // 1. CARGA DE RECURSOS
@@ -39,7 +39,7 @@ function nakama_load_resources() {
     }
 }
 
-// 2. UI (GRID LAYOUT)
+// 2. UI (TOGGLE MODE)
 add_action('wp_footer', 'nakama_render_app');
 function nakama_render_app() {
     if (!current_user_can('administrator')) return;
@@ -50,6 +50,14 @@ function nakama_render_app() {
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
 
     <script>
+        // Configuración inicial del tema
+        // Verifica si hay preferencia guardada o usa la del sistema
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -57,10 +65,17 @@ function nakama_render_app() {
                     colors: {
                         primary: "#FF3333",
                         "primary-dark": "#cc0000",
+                        // Definimos colores para dark y light
                         "background-dark": "#0A0A0A", 
                         "surface-dark": "#141414", 
-                        "input-bg": "#1F1F1F",
-                        "border-dark": "#333333"
+                        "input-bg-dark": "#1F1F1F",
+                        
+                        "background-light": "#F3F4F6",
+                        "surface-light": "#FFFFFF",
+                        "input-bg-light": "#FFFFFF",
+                        
+                        "border-dark": "#333333",
+                        "border-light": "#E5E7EB"
                     },
                     fontFamily: {
                         display: ["'Teko'", "sans-serif"],
@@ -82,8 +97,8 @@ function nakama_render_app() {
             border-radius: 12px !important;
         }
         #nk-launcher {
-            bottom: 120px !important; 
-            left: 10px !important; 
+            bottom: 80px !important; 
+            left: 17px !important; 
         }
         /* ---------------------------------- */
 
@@ -91,19 +106,31 @@ function nakama_render_app() {
         #nk-root h1, #nk-root h2, #nk-root h3, #nk-root .font-display { font-family: 'Teko', sans-serif; }
         
         #nk-modal ::-webkit-scrollbar { width: 8px; }
-        #nk-modal ::-webkit-scrollbar-track { background: #0A0A0A; }
-        #nk-modal ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        
+        /* Scrollbar dinámica Dark/Light */
+        html.dark #nk-modal ::-webkit-scrollbar-track { background: #0A0A0A; }
+        html.dark #nk-modal ::-webkit-scrollbar-thumb { background: #333; }
+        
+        html:not(.dark) #nk-modal ::-webkit-scrollbar-track { background: #f1f1f1; }
+        html:not(.dark) #nk-modal ::-webkit-scrollbar-thumb { background: #ccc; }
+
+        #nk-modal ::-webkit-scrollbar-thumb { border-radius: 4px; }
         #nk-modal ::-webkit-scrollbar-thumb:hover { background: #FF3333; }
 
         .nk-anim-pop { animation: nkPop 0.3s ease-out forwards; }
         @keyframes nkPop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         
+        /* Inputs adaptables */
         .nk-input-base {
-            background-color: #1F1F1F !important; border: 1px solid #333 !important; color: white !important;
             border-radius: 0.375rem !important; padding: 0.5rem 0.75rem !important; width: 100%;
-            transition: all 0.2s;
+            transition: all 0.2s; outline: none;
         }
-        .nk-input-base:focus { border-color: #FF3333 !important; ring: 1px #FF3333 !important; outline: none; }
+        /* Dark Input */
+        html.dark .nk-input-base { background-color: #1F1F1F !important; border: 1px solid #333 !important; color: white !important; }
+        html.dark .nk-input-base:focus { border-color: #FF3333 !important; ring: 1px #FF3333 !important; }
+        /* Light Input */
+        html:not(.dark) .nk-input-base { background-color: #fff !important; border: 1px solid #d1d5db !important; color: #111 !important; }
+        html:not(.dark) .nk-input-base:focus { border-color: #FF3333 !important; ring: 1px #FF3333 !important; }
         
         .nk-btn-primary {
             background-color: #FF3333 !important; color: white !important; font-family: 'Teko', sans-serif !important;
@@ -112,16 +139,24 @@ function nakama_render_app() {
         }
         .nk-btn-primary:hover { background-color: #cc0000 !important; transform: translateY(-1px); }
 
-        .nk-checkbox-list label { color: #ccc; display: block; padding: 2px 0; font-size: 0.9rem; cursor: pointer; }
-        .nk-checkbox-list label:hover { color: #FF3333; }
+        .nk-checkbox-list label { display: block; padding: 2px 0; font-size: 0.9rem; cursor: pointer; }
+        html.dark .nk-checkbox-list label { color: #ccc; }
+        html:not(.dark) .nk-checkbox-list label { color: #333; }
+        .nk-checkbox-list label:hover { color: #FF3333 !important; }
         
+        /* Datalist Helper */
         .nk-datalist-helper {
             position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px; overflow-y: auto;
-            background: #1F1F1F; border: 1px solid #FF3333; z-index: 50; display: none;
-            border-radius: 0 0 6px 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            z-index: 50; display: none; border-radius: 0 0 6px 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border: 1px solid #FF3333;
         }
-        .nk-datalist-opt { padding: 8px 12px; cursor: pointer; color: #eee; font-size: 14px; border-bottom: 1px solid #333; }
-        .nk-datalist-opt:hover { background: #FF3333; color: white; }
+        html.dark .nk-datalist-helper { background: #1F1F1F; }
+        html:not(.dark) .nk-datalist-helper { background: #fff; }
+
+        .nk-datalist-opt { padding: 8px 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid; }
+        html.dark .nk-datalist-opt { color: #eee; border-color: #333; }
+        html:not(.dark) .nk-datalist-opt { color: #333; border-color: #eee; }
+        .nk-datalist-opt:hover { background: #FF3333; color: white !important; }
 
         .media-modal { z-index: 999999 !important; }
         .media-modal-backdrop { z-index: 999998 !important; }
@@ -132,78 +167,82 @@ function nakama_render_app() {
             <span class="material-icons-outlined text-3xl">rocket_launch</span>
         </div>
 
-        <div id="nk-modal" style="display:none;" class="bg-black/90 backdrop-blur-sm z-[99991] overflow-hidden flex flex-col shadow-2xl border border-gray-800">
+        <div id="nk-modal" style="display:none;" class="dark:bg-black/90 bg-gray-100/90 backdrop-blur-sm z-[99991] overflow-hidden flex flex-col shadow-2xl border dark:border-gray-800 border-gray-300">
             
-            <div class="bg-black/80 p-4 md:p-6 border-b border-gray-800 flex justify-between items-center shrink-0 backdrop-blur-md">
+            <div class="dark:bg-black/80 bg-white/80 p-4 md:p-6 border-b dark:border-gray-800 border-gray-200 flex justify-between items-center shrink-0 backdrop-blur-md">
                 <div>
-                    <h1 class="text-3xl md:text-4xl text-white uppercase font-bold m-0 leading-none">Nakama Suite <span class="text-primary">v33</span></h1>
-                    <p class="text-gray-400 text-xs md:text-sm m-0">Importador de Productos &bull; ImperioDev Edition</p>
+                    <h1 class="text-3xl md:text-4xl dark:text-white text-gray-900 uppercase font-bold m-0 leading-none">Nakama Suite <span class="text-primary">v34</span></h1>
+                    <p class="text-gray-500 text-xs md:text-sm m-0">Importador de Productos &bull; ImperioDev Edition</p>
                 </div>
-                <div class="flex gap-2 md:gap-3">
-                    <button id="nk-reset-btn" class="hidden px-3 py-1 md:px-4 md:py-2 bg-gray-800 text-white rounded hover:bg-gray-700 font-display uppercase tracking-wide text-sm md:text-base">Inicio</button>
-                    <button onclick="jQuery('#nk-modal').fadeOut()" class="px-3 py-1 md:px-4 md:py-2 border border-gray-700 text-gray-300 rounded hover:text-white hover:border-white transition-colors uppercase font-display tracking-wide text-sm md:text-base">Cerrar</button>
+                <div class="flex items-center gap-2 md:gap-3">
+                    
+                    <button id="nk-theme-toggle" class="p-2 rounded-full dark:text-gray-400 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors focus:outline-none" title="Cambiar Tema">
+                        <span id="nk-theme-icon" class="material-icons-outlined text-xl md:text-2xl">dark_mode</span>
+                    </button>
+                    <button id="nk-reset-btn" class="hidden px-3 py-1 md:px-4 md:py-2 dark:bg-gray-800 bg-gray-200 dark:text-white text-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-700 font-display uppercase tracking-wide text-sm md:text-base">Inicio</button>
+                    <button onclick="jQuery('#nk-modal').fadeOut()" class="px-3 py-1 md:px-4 md:py-2 border dark:border-gray-700 border-gray-300 dark:text-gray-300 text-gray-600 rounded hover:text-primary dark:hover:text-white dark:hover:border-white hover:border-primary transition-colors uppercase font-display tracking-wide text-sm md:text-base">Cerrar</button>
                     <button id="nk-process-btn" class="hidden nk-btn-primary shadow-lg shadow-red-900/20 text-sm md:text-lg">🚀 Subir</button>
                 </div>
             </div>
 
-            <div id="nk-progress-bar-container" class="hidden w-full h-1 bg-gray-800 shrink-0">
+            <div id="nk-progress-bar-container" class="hidden w-full h-1 dark:bg-gray-800 bg-gray-300 shrink-0">
                 <div id="nk-progress-bar-fill" class="h-full bg-primary transition-all duration-300 w-0"></div>
             </div>
 
             <div class="flex-1 overflow-y-auto p-4 md:p-8">
                 
                 <div id="nk-start-screen" class="flex flex-col md:flex-row gap-6 justify-center py-10 h-full items-center">
-                    <div class="group bg-input-bg border border-gray-700 hover:border-primary p-10 rounded-xl cursor-pointer transition-all hover:-translate-y-2 text-center w-full md:w-80 shadow-lg" onclick="document.getElementById('nk-csv-input').click()">
-                        <span class="material-icons-outlined text-6xl text-gray-500 group-hover:text-primary mb-4 transition-colors">folder_open</span>
-                        <h3 class="text-2xl text-white uppercase font-bold">Importar CSV</h3>
+                    <div class="group dark:bg-input-bg-dark bg-white border dark:border-gray-700 border-gray-200 hover:border-primary p-10 rounded-xl cursor-pointer transition-all hover:-translate-y-2 text-center w-full md:w-80 shadow-lg" onclick="document.getElementById('nk-csv-input').click()">
+                        <span class="material-icons-outlined text-6xl text-gray-400 group-hover:text-primary mb-4 transition-colors">folder_open</span>
+                        <h3 class="text-2xl dark:text-white text-gray-900 uppercase font-bold">Importar CSV</h3>
                         <p class="text-gray-500 text-sm">Carga masiva desde archivo</p>
                         <input type="file" id="nk-csv-input" accept=".csv" class="hidden" />
                     </div>
                     
-                    <div id="nk-btn-manual-mode" class="group bg-input-bg border border-gray-700 hover:border-primary p-10 rounded-xl cursor-pointer transition-all hover:-translate-y-2 text-center w-full md:w-80 shadow-lg">
-                        <span class="material-icons-outlined text-6xl text-gray-500 group-hover:text-primary mb-4 transition-colors">edit_note</span>
-                        <h3 class="text-2xl text-white uppercase font-bold">Crear Manual</h3>
+                    <div id="nk-btn-manual-mode" class="group dark:bg-input-bg-dark bg-white border dark:border-gray-700 border-gray-200 hover:border-primary p-10 rounded-xl cursor-pointer transition-all hover:-translate-y-2 text-center w-full md:w-80 shadow-lg">
+                        <span class="material-icons-outlined text-6xl text-gray-400 group-hover:text-primary mb-4 transition-colors">edit_note</span>
+                        <h3 class="text-2xl dark:text-white text-gray-900 uppercase font-bold">Crear Manual</h3>
                         <p class="text-gray-500 text-sm">Constructor visual de productos</p>
                     </div>
                 </div>
 
                 <div id="nk-manual-form" class="hidden max-w-5xl mx-auto pb-10">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl text-white uppercase m-0">Configuración</h2>
-                        <button id="nk-wipe-form" class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 uppercase font-bold tracking-wide transition-colors"><span class="material-icons-outlined text-base">delete_sweep</span> Limpiar Todo</button>
+                        <h2 class="text-3xl dark:text-white text-gray-900 uppercase m-0">Configuración</h2>
+                        <button id="nk-wipe-form" class="text-red-500 hover:text-red-600 text-sm flex items-center gap-1 uppercase font-bold tracking-wide transition-colors"><span class="material-icons-outlined text-base">delete_sweep</span> Limpiar Todo</button>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                            <label class="block text-gray-400 text-xs uppercase font-bold mb-2">Nombre del Producto</label>
+                            <label class="block text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-2">Nombre del Producto</label>
                             <input type="text" id="man-name" class="nk-input-base" placeholder="Ej: Camiseta Luffy Gear 5">
                         </div>
                         <div>
-                            <label class="block text-gray-400 text-xs uppercase font-bold mb-2">SKU Base (Padre)</label>
+                            <label class="block text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-2">SKU Base (Padre)</label>
                             <input type="text" id="man-sku" class="nk-input-base" placeholder="Ej: OP-LUFFY-G5">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div>
-                            <label class="block text-gray-400 text-xs uppercase font-bold mb-2">Categorías</label>
+                            <label class="block text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-2">Categorías</label>
                             <input type="text" class="nk-input-base mb-2" placeholder="Filtrar categorías..." onkeyup="filterList(this, '#man-cats-list')">
-                            <div id="man-cats-list" class="nk-checkbox-list h-32 overflow-y-auto bg-input-bg border border-gray-700 rounded p-2 custom-scroll"></div>
+                            <div id="man-cats-list" class="nk-checkbox-list h-32 overflow-y-auto dark:bg-input-bg-dark bg-white border dark:border-gray-700 border-gray-300 rounded p-2 custom-scroll"></div>
                         </div>
                         <div>
-                            <label class="block text-gray-400 text-xs uppercase font-bold mb-2">Etiquetas</label>
+                            <label class="block text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-2">Etiquetas</label>
                             <input type="text" class="nk-input-base mb-2" placeholder="Filtrar etiquetas..." onkeyup="filterList(this, '#man-tags-list')">
-                            <div id="man-tags-list" class="nk-checkbox-list h-32 overflow-y-auto bg-input-bg border border-gray-700 rounded p-2 custom-scroll"></div>
+                            <div id="man-tags-list" class="nk-checkbox-list h-32 overflow-y-auto dark:bg-input-bg-dark bg-white border dark:border-gray-700 border-gray-300 rounded p-2 custom-scroll"></div>
                         </div>
                     </div>
 
-                    <div class="bg-black/30 border border-dashed border-gray-700 rounded-xl p-6 relative">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-gray-800 gap-4">
+                    <div class="dark:bg-black/30 bg-gray-50 border border-dashed dark:border-gray-700 border-gray-300 rounded-xl p-6 relative">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b dark:border-gray-800 border-gray-200 gap-4">
                             <span class="text-primary font-display text-xl uppercase tracking-wider flex items-center gap-2"><span class="material-icons-outlined">tune</span> Generador de Variantes</span>
                             
                             <div class="flex gap-2">
-                                <button class="px-3 py-2 bg-gray-800 hover:bg-primary text-white text-xs rounded uppercase font-bold transition-colors flex items-center gap-1" onclick="applyTemplate_SemitonoNegro()"><span class="material-icons-outlined text-sm">flash_on</span> Plantilla Negra</button>
-                                <button id="nk-clear-inputs" class="px-3 py-2 border border-gray-600 hover:border-white text-gray-400 hover:text-white text-xs rounded uppercase font-bold transition-colors">Limpiar Campos</button>
+                                <button class="px-3 py-2 dark:bg-gray-800 bg-gray-200 hover:bg-primary dark:hover:bg-primary text-gray-700 dark:text-white hover:text-white text-xs rounded uppercase font-bold transition-colors flex items-center gap-1" onclick="applyTemplate_SemitonoNegro()"><span class="material-icons-outlined text-sm">flash_on</span> Plantilla Negra</button>
+                                <button id="nk-clear-inputs" class="px-3 py-2 border dark:border-gray-600 border-gray-300 hover:border-red-500 text-gray-500 hover:text-red-500 text-xs rounded uppercase font-bold transition-colors">Limpiar Campos</button>
                             </div>
                         </div>
 
@@ -228,46 +267,46 @@ function nakama_render_app() {
                                 <div class="w-full md:w-24 shrink-0 flex justify-between md:block">
                                     <span class="text-gray-500 text-xs uppercase font-bold">Talla</span>
                                     <div class="md:hidden flex gap-1">
-                                        <button type="button" class="bg-gray-700 text-[10px] px-2 py-0.5 rounded text-white" onclick="fillSizes('normal')">S-XL</button>
-                                        <button type="button" class="bg-gray-700 text-[10px] px-2 py-0.5 rounded text-white" onclick="fillSizes('full')">S-3XL</button>
+                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 text-[10px] px-2 py-0.5 rounded dark:text-white" onclick="fillSizes('normal')">S-XL</button>
+                                        <button type="button" class="bg-gray-200 dark:bg-gray-700 text-[10px] px-2 py-0.5 rounded dark:text-white" onclick="fillSizes('full')">S-3XL</button>
                                     </div>
                                 </div>
                                 <div class="relative flex-1">
                                     <div class="hidden md:flex absolute right-2 top-1.5 gap-1 z-10">
-                                        <button type="button" class="bg-gray-800 hover:bg-primary border border-gray-600 text-[10px] px-2 py-0.5 rounded text-white uppercase transition-colors" onclick="fillSizes('normal')">S-XL</button>
-                                        <button type="button" class="bg-gray-800 hover:bg-primary border border-gray-600 text-[10px] px-2 py-0.5 rounded text-white uppercase transition-colors" onclick="fillSizes('full')">S-3XL</button>
+                                        <button type="button" class="dark:bg-gray-800 bg-gray-200 hover:bg-primary dark:hover:bg-primary border dark:border-gray-600 border-gray-300 text-[10px] px-2 py-0.5 rounded dark:text-white text-gray-700 hover:text-white uppercase transition-colors" onclick="fillSizes('normal')">S-XL</button>
+                                        <button type="button" class="dark:bg-gray-800 bg-gray-200 hover:bg-primary dark:hover:bg-primary border dark:border-gray-600 border-gray-300 text-[10px] px-2 py-0.5 rounded dark:text-white text-gray-700 hover:text-white uppercase transition-colors" onclick="fillSizes('full')">S-3XL</button>
                                     </div>
                                     <input type="text" id="man-attr3-vals" class="nk-input-base" placeholder="Ej: S, M, L" autocomplete="off">
                                     <div class="nk-datalist-helper" id="list-talla"></div>
                                 </div>
                             </div>
 
-                            <div class="flex flex-col md:flex-row gap-4 items-end mt-6 pt-6 border-t border-gray-800">
+                            <div class="flex flex-col md:flex-row gap-4 items-end mt-6 pt-6 border-t dark:border-gray-800 border-gray-200">
                                 <div class="w-full md:w-1/3">
                                     <label class="text-xs uppercase text-gray-500 font-bold mb-1 block">Precio del Lote ($)</label>
                                     <input type="number" id="man-batch-price" class="nk-input-base text-xl font-bold text-primary" placeholder="0.00">
                                 </div>
                                 <div class="w-full md:flex-1">
-                                    <button id="nk-add-batch" class="w-full py-3 bg-gray-800 hover:bg-white hover:text-black text-white rounded font-display uppercase text-xl transition-colors border border-gray-600 shadow-md">➕ Generar Variantes</button>
+                                    <button id="nk-add-batch" class="w-full py-3 dark:bg-gray-800 bg-gray-200 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black dark:text-white text-gray-800 rounded font-display uppercase text-xl transition-colors border dark:border-gray-600 border-gray-300 shadow-md">➕ Generar Variantes</button>
                                 </div>
                             </div>
                         </div>
 
                         <div id="nk-staging-wrapper" class="mt-8 hidden">
                             <div class="flex justify-between items-center mb-3">
-                                <h4 class="text-white font-bold text-sm uppercase flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> Previsualización</h4>
-                                <button id="nk-clear-table" class="text-red-500 text-xs uppercase font-bold hover:text-red-400 transition-colors">Borrar Todo</button>
+                                <h4 class="dark:text-white text-gray-900 font-bold text-sm uppercase flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> Previsualización</h4>
+                                <button id="nk-clear-table" class="text-red-500 text-xs uppercase font-bold hover:text-red-600 transition-colors">Borrar Todo</button>
                             </div>
                             
-                            <div class="bg-black rounded border border-gray-800 overflow-hidden max-h-60 overflow-y-auto custom-scroll">
-                                <div class="grid grid-cols-12 gap-2 bg-gray-900 text-gray-500 uppercase text-xs font-bold sticky top-0 z-10 border-b border-gray-800">
+                            <div class="dark:bg-black bg-white rounded border dark:border-gray-800 border-gray-300 overflow-hidden max-h-60 overflow-y-auto custom-scroll">
+                                <div class="grid grid-cols-12 gap-2 dark:bg-gray-900 bg-gray-100 text-gray-500 uppercase text-xs font-bold sticky top-0 z-10 border-b dark:border-gray-800 border-gray-300">
                                     <div class="col-span-3 p-3">SKU Ref</div>
                                     <div class="col-span-5 p-3">Combinación</div>
                                     <div class="col-span-2 p-3">Precio</div>
                                     <div class="col-span-2 p-3 text-right">Borrar</div>
                                 </div>
                                 
-                                <div id="nk-staging-body" class="divide-y divide-gray-800"></div>
+                                <div id="nk-staging-body" class="divide-y dark:divide-gray-800 divide-gray-200"></div>
                             </div>
                         </div>
                     </div>
@@ -285,6 +324,31 @@ function nakama_render_app() {
     var pendingVariations = [];
     const DEFAULT_SHIP = { weight: '0.25', len: '30', width: '25', height: '2' };
     const TEMPLATE_DESC = `✨ Fabricado con pasión en Nakama Bordados ✨\n\nCada uno de nuestros productos es elaborado cuidadosamente en nuestro taller, combinando bordado y estampado de alta calidad para ofrecerte piezas únicas, duraderas y llenas de estilo. Ya sea una prenda bordada o estampada, cuidamos cada detalle para garantizar un acabado profesional y resistente.`;
+
+    // --- DARK MODE LOGIC ---
+    const themeToggleBtn = document.getElementById('nk-theme-toggle');
+    const themeIcon = document.getElementById('nk-theme-icon');
+
+    function updateThemeIcon() {
+        if (document.documentElement.classList.contains('dark')) {
+            themeIcon.innerText = 'light_mode'; // Icono de Sol para ir a Light
+        } else {
+            themeIcon.innerText = 'dark_mode'; // Icono de Luna para ir a Dark
+        }
+    }
+
+    themeToggleBtn.addEventListener('click', function() {
+        if (document.documentElement.classList.contains('dark')) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('color-theme', 'light');
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('color-theme', 'dark');
+        }
+        updateThemeIcon();
+    });
+    updateThemeIcon(); // Init
+    // -----------------------
 
     function filterList(input, listId) {
         var filter = input.value.toUpperCase();
@@ -328,14 +392,13 @@ function nakama_render_app() {
         if(pendingVariations.length > 0) { jQuery('#nk-staging-wrapper').show(); } else { jQuery('#nk-staging-wrapper').hide(); }
         
         pendingVariations.forEach((v, i) => {
-            let attrStr = Object.values(v.attributes).join(' <span class="text-gray-600">/</span> ');
+            let attrStr = Object.values(v.attributes).join(' <span class="text-gray-400">/</span> ');
             let refSku = jQuery('#man-sku').val();
             
-            // Usamos DIVS con las mismas clases de columna que el header
             let rowHtml = `
-                <div class="grid grid-cols-12 gap-2 p-3 hover:bg-gray-800 transition-colors items-center text-sm">
-                    <div class="col-span-3 font-mono text-gray-400 break-all text-xs">${refSku}</div>
-                    <div class="col-span-5 font-bold text-white">${attrStr}</div>
+                <div class="grid grid-cols-12 gap-2 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors items-center text-sm">
+                    <div class="col-span-3 font-mono text-gray-500 dark:text-gray-400 break-all text-xs">${refSku}</div>
+                    <div class="col-span-5 font-bold text-gray-800 dark:text-white">${attrStr}</div>
                     <div class="col-span-2 text-primary font-bold">$${v.price}</div>
                     <div class="col-span-2 text-right">
                         <span class="text-red-500 cursor-pointer font-bold hover:text-red-400 text-lg leading-none" onclick="removeVar(${i})">&times;</span>
@@ -435,7 +498,7 @@ function nakama_render_app() {
 
         $('#nk-csv-input').change(function(e) {
             if(!e.target.files[0]) return; 
-            $('#nk-start-screen').hide(); $('#nk-products-list').html('<p class="text-white text-center mt-10">Leyendo...</p>').show(); $('#nk-reset-btn').show();
+            $('#nk-start-screen').hide(); $('#nk-products-list').html('<p class="dark:text-white text-gray-800 text-center mt-10">Leyendo...</p>').show(); $('#nk-reset-btn').show();
             Papa.parse(e.target.files[0], { header: false, skipEmptyLines: true, encoding: 'ISO-8859-1', complete: function(r) { processCSVData(r.data); } });
         });
 
@@ -498,16 +561,16 @@ function nakama_render_app() {
             let c=$('#nk-products-list').empty().show(); $('#nk-process-btn').removeClass('hidden');
             parsedProducts.forEach((p,i)=>{
                 let tL=p.type==='variable'?'Variable':'Simple';
-                let imH=''; if(p.type==='variable' && Object.keys(p.image_groups).length > 0){ let th=''; for(let [k,g] of Object.entries(p.image_groups)) th+=`<div class="bg-gray-900 border border-gray-700 rounded p-2 flex items-center gap-3"><div class="w-10 h-10 bg-black rounded cursor-pointer relative overflow-hidden border border-gray-600 hover:border-primary" onclick="grpImg(${i},'${k}',this)"><span class="absolute inset-0 flex items-center justify-center text-gray-500 hover:text-white">+</span><img style="display:none" class="w-full h-full object-cover"></div><div><div class="text-xs font-bold text-white">${g.label}</div><div class="text-[10px] text-gray-500">${g.indices.length} vars</div></div></div>`; imH=`<div class="mt-4 bg-black/50 p-4 rounded border border-dashed border-gray-700"><div class="text-xs font-bold text-gray-400 uppercase mb-2">📸 Fotos por Estilo</div><div class="flex flex-wrap gap-2">${th}</div></div>`; }
+                let imH=''; if(p.type==='variable' && Object.keys(p.image_groups).length > 0){ let th=''; for(let [k,g] of Object.entries(p.image_groups)) th+=`<div class="dark:bg-gray-900 bg-gray-100 border dark:border-gray-700 border-gray-300 rounded p-2 flex items-center gap-3"><div class="w-10 h-10 dark:bg-black bg-white rounded cursor-pointer relative overflow-hidden border dark:border-gray-600 border-gray-300 hover:border-primary" onclick="grpImg(${i},'${k}',this)"><span class="absolute inset-0 flex items-center justify-center text-gray-500 hover:text-primary font-bold">+</span><img style="display:none" class="w-full h-full object-cover"></div><div><div class="text-xs font-bold dark:text-white text-gray-800">${g.label}</div><div class="text-[10px] text-gray-500">${g.indices.length} vars</div></div></div>`; imH=`<div class="mt-4 dark:bg-black/50 bg-gray-50 p-4 rounded border border-dashed dark:border-gray-700 border-gray-300"><div class="text-xs font-bold text-gray-400 uppercase mb-2">📸 Fotos por Estilo</div><div class="flex flex-wrap gap-2">${th}</div></div>`; }
                 let dup=p.exists_in_db?'<span class="bg-red-900 text-red-200 text-xs px-2 py-1 rounded font-bold uppercase">⚠️ Ya existe</span>':'';
                 let s = p.shipping;
-                let shipInfo = (s.weight || s.len) ? `📦 ${s.weight}kg | ${s.len}x${s.width}x${s.height}` : `<span class="text-gray-600">Sin envío</span>`;
+                let shipInfo = (s.weight || s.len) ? `📦 ${s.weight}kg | ${s.len}x${s.width}x${s.height}` : `<span class="text-gray-500">Sin envío</span>`;
 
-                let html=`<div class="bg-surface-dark border ${p.exists_in_db ? 'border-red-900' : 'border-gray-800'} rounded-xl p-6 shadow-lg flex flex-col relative overflow-hidden">
+                let html=`<div class="dark:bg-surface-dark bg-white border ${p.exists_in_db ? 'border-red-900' : 'dark:border-gray-800 border-gray-200'} rounded-xl p-6 shadow-lg flex flex-col relative overflow-hidden transition-all">
                     ${p.exists_in_db ? '<div class="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold px-3 py-1 uppercase rounded-bl-lg">Duplicado</div>' : ''}
-                    <div class="flex gap-6 items-start border-b border-gray-800 pb-4 mb-4">
-                        <div class="w-24 h-24 bg-black rounded-lg border border-gray-700 flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden relative" onclick="mainImg(${i},this)">
-                            <span class="text-gray-600 text-xs uppercase font-bold">Foto</span>
+                    <div class="flex gap-6 items-start border-b dark:border-gray-800 border-gray-200 pb-4 mb-4">
+                        <div class="w-24 h-24 dark:bg-black bg-gray-100 rounded-lg border dark:border-gray-700 border-gray-300 flex items-center justify-center cursor-pointer hover:border-primary transition-colors overflow-hidden relative" onclick="mainImg(${i},this)">
+                            <span class="text-gray-500 text-xs uppercase font-bold">Foto</span>
                             <img style="display:none" class="absolute inset-0 w-full h-full object-cover">
                         </div>
                         <div class="flex-1">
@@ -518,18 +581,18 @@ function nakama_render_app() {
                             ${p.is_variable_price?`<input type="text" class="nk-input-base text-gray-500 cursor-not-allowed" value="${p.display_price}" disabled>`:`<input type="text" class="nk-input-base text-primary font-bold" id="pr-${i}" value="${p.display_price}">`}
                             
                             <div class="flex gap-2 mt-3 flex-wrap">
-                                <span class="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded border border-gray-700">📁 ${p.categories||'Sin Cat'}</span>
-                                ${p.tags?`<span class="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded border border-gray-700">🏷️ ${p.tags}</span>`:''}
-                                <span class="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded border border-gray-700">${shipInfo}</span>
+                                <span class="dark:bg-gray-800 bg-gray-200 dark:text-gray-300 text-gray-700 text-xs px-2 py-1 rounded border dark:border-gray-700 border-gray-300">📁 ${p.categories||'Sin Cat'}</span>
+                                ${p.tags?`<span class="dark:bg-gray-800 bg-gray-200 dark:text-gray-300 text-gray-700 text-xs px-2 py-1 rounded border dark:border-gray-700 border-gray-300">🏷️ ${p.tags}</span>`:''}
+                                <span class="dark:bg-gray-800 bg-gray-200 dark:text-gray-300 text-gray-700 text-xs px-2 py-1 rounded border dark:border-gray-700 border-gray-300">${shipInfo}</span>
                             </div>
                         </div>
                         <div class="w-24 text-right font-bold text-sm text-gray-500" id="st-${i}">${p.exists_in_db?'<span class="text-red-500">Omitir</span>':'Pendiente'}</div>
                     </div>
                     
-                    <div class="bg-gray-900/50 p-4 rounded border border-gray-800">
+                    <div class="dark:bg-gray-900/50 bg-gray-50 p-4 rounded border dark:border-gray-800 border-gray-200">
                         <div class="flex justify-between items-center mb-2">
                             <label class="text-xs font-bold text-gray-500 uppercase">Descripción</label>
-                            <button class="text-primary text-xs uppercase font-bold hover:text-white" onclick="tpl(${i})">✨ Usar Plantilla</button>
+                            <button class="text-primary text-xs uppercase font-bold hover:text-red-600" onclick="tpl(${i})">✨ Usar Plantilla</button>
                         </div>
                         <textarea id="desc-${i}" class="nk-input-base h-20 text-sm">${p.description}</textarea>
                     </div>
