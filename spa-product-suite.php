@@ -218,6 +218,7 @@ function nakama_render_app() {
                             
                             <div class="flex gap-2">
                                 <button class="px-3 py-2 dark:bg-gray-800 bg-gray-200 hover:bg-primary dark:hover:bg-primary text-gray-700 dark:text-white hover:text-white text-xs rounded uppercase font-bold transition-colors flex items-center gap-1" onclick="applyTemplate_SemitonoNegro()"><span class="material-icons-outlined text-sm">flash_on</span> Plantilla Semitono Estampado/Negro</button>
+								    <button class="px-3 py-2 dark:bg-gray-800 bg-gray-200 hover:bg-purple-600 dark:hover:bg-purple-600 text-gray-700 dark:text-white hover:text-white text-xs rounded uppercase font-bold transition-colors flex items-center gap-1" onclick="applyTemplate_FullColors()"><span class="material-icons-outlined text-sm">palette</span> Plantilla Full Colors/Estampado</button>
                                 <button id="nk-clear-inputs" class="px-3 py-2 border dark:border-gray-600 border-gray-300 hover:border-red-500 text-gray-500 hover:text-red-500 text-xs rounded uppercase font-bold transition-colors">Limpiar Campos</button>
                             </div>
                         </div>
@@ -346,7 +347,7 @@ function nakama_render_app() {
         const CONFIG = [
             { st: 'T-shirt',   sz: ['S', 'M', 'L', 'XL'], pr: '299' }, { st: 'T-shirt',   sz: ['2XL'], pr: '330' },
             { st: 'Oversize',  sz: ['S', 'M', 'L', 'XL'], pr: '399' }, { st: 'Oversize',  sz: ['2XL', '3XL'], pr: '439' },
-            { st: 'Acid Wash', sz: ['S', 'M', 'L', 'XL'], pr: '319' }, { st: 'Acid Wash', sz: ['2XL'], pr: '339' },
+            { st: 'Acid Wash', sz: ['S', 'M', 'L', 'XL'], pr: '319' }, { st: 'Acid Wash', sz: ['2XL'], pr: '349' },
             { st: 'Tank Top',  sz: ['S', 'M', 'L', 'XL'], pr: '289' }, { st: 'Tank Top',  sz: ['2XL', '3XL'], pr: '309' },
             { st: 'Sudadera',  sz: ['S', 'M', 'L', 'XL'], pr: '399' }, { st: 'Sudadera',  sz: ['2XL'], pr: '439' }
         ];
@@ -356,6 +357,55 @@ function nakama_render_app() {
                 pendingVariations.push({ sku: skuBase, price: grp.pr, attributes: attrs, image_id: '', shipping: DEFAULT_SHIP });
             });
         });
+        jQuery('#man-attr1-vals, #man-attr2-vals, #man-attr3-vals, #man-batch-price').val('');
+        renderStagingTable();
+    };
+
+	// NUEVA FUNCIÓN: PLANTILLA FULL COLORS
+    window.applyTemplate_FullColors = function() {
+        if(!confirm('¿Aplicar plantilla Full Colors (Negro, Blanco, Hueso, Kaki)?\nEsto generará muchas variaciones.')) return;
+        
+        pendingVariations = []; 
+        let skuBase = jQuery('#man-sku').val();
+        
+        // 1. Definimos los colores base
+        const COLORS = ['Negro', 'Blanco', 'Hueso', 'Kaki'];
+
+        // 2. Configuración de precios y tallas según tu imagen
+        const CONFIG = [
+            { st: 'T-shirt',   sz: ['S', 'M', 'L', 'XL'], pr: '299' },
+            { st: 'T-shirt',   sz: ['2XL'],               pr: '330' },
+            
+            { st: 'Oversize',  sz: ['S', 'M', 'L', 'XL'], pr: '399' },
+            { st: 'Oversize',  sz: ['2XL', '3XL'],        pr: '439' },
+            
+            { st: 'Acid Wash', sz: ['S', 'M', 'L', 'XL'], pr: '319' },
+            { st: 'Acid Wash', sz: ['2XL'],               pr: '349' }, // Ojo: En esta tabla es 349 (en la negra era 339)
+            
+            { st: 'Tank Top',  sz: ['S', 'M', 'L', 'XL'], pr: '289' },
+            { st: 'Tank Top',  sz: ['2XL', '3XL'],        pr: '309' },
+            
+            { st: 'Sudadera',  sz: ['S', 'M', 'L', 'XL'], pr: '399' },
+            { st: 'Sudadera',  sz: ['2XL'],               pr: '439' }
+        ];
+
+        // 3. Generar combinaciones (Color x Estilo x Talla)
+        COLORS.forEach(color => {
+            CONFIG.forEach(grp => {
+                grp.sz.forEach(size => {
+                    let attrs = { 'Color': color, 'Estilo': grp.st, 'Talla': size };
+                    pendingVariations.push({ 
+                        sku: skuBase, 
+                        price: grp.pr, 
+                        attributes: attrs, 
+                        image_id: '', 
+                        shipping: DEFAULT_SHIP 
+                    });
+                });
+            });
+        });
+
+        // Limpiar inputs y renderizar
         jQuery('#man-attr1-vals, #man-attr2-vals, #man-attr3-vals, #man-batch-price').val('');
         renderStagingTable();
     };
