@@ -361,37 +361,41 @@ function nakama_render_app() {
         renderStagingTable();
     };
 
-	// NUEVA FUNCIÓN: PLANTILLA FULL COLORS
+// NUEVA FUNCIÓN CORREGIDA: PLANTILLA FULL COLORS CON RESTRICCIONES
     window.applyTemplate_FullColors = function() {
-        if(!confirm('¿Aplicar plantilla Full Colors (Negro, Blanco, Hueso, Kaki)?\nEsto generará muchas variaciones.')) return;
+        if(!confirm('¿Aplicar plantilla Full Colors con restricciones de estilo?\n(T-shirt: 4 colores, Oversize: 3 colores, Resto: Solo Negro)')) return;
         
         pendingVariations = []; 
         let skuBase = jQuery('#man-sku').val();
         
-        // 1. Definimos los colores base
-        const COLORS = ['Negro', 'Blanco', 'Hueso', 'Kaki'];
-
-        // 2. Configuración de precios y tallas según tu imagen
+        // Configuración detallada: Estilo + Tallas + Precio + COLORES ESPECÍFICOS
         const CONFIG = [
-            { st: 'T-shirt',   sz: ['S', 'M', 'L', 'XL'], pr: '299' },
-            { st: 'T-shirt',   sz: ['2XL'],               pr: '330' },
+            // 1. T-SHIRT (4 Colores: Negro, Blanco, Hueso, Kaki)
+            { st: 'T-shirt',   sz: ['S', 'M', 'L', 'XL'], pr: '299', cols: ['Negro', 'Blanco', 'Hueso', 'Kaki'] },
+            { st: 'T-shirt',   sz: ['2XL'],               pr: '330', cols: ['Negro', 'Blanco', 'Hueso', 'Kaki'] },
             
-            { st: 'Oversize',  sz: ['S', 'M', 'L', 'XL'], pr: '399' },
-            { st: 'Oversize',  sz: ['2XL', '3XL'],        pr: '439' },
+            // 2. OVERSIZE (3 Colores: Negro, Blanco, Hueso) - Sin Kaki
+            { st: 'Oversize',  sz: ['S', 'M', 'L', 'XL'], pr: '399', cols: ['Negro', 'Blanco', 'Hueso'] },
+            { st: 'Oversize',  sz: ['2XL', '3XL'],        pr: '439', cols: ['Negro', 'Blanco', 'Hueso'] },
             
-            { st: 'Acid Wash', sz: ['S', 'M', 'L', 'XL'], pr: '319' },
-            { st: 'Acid Wash', sz: ['2XL'],               pr: '349' }, // Ojo: En esta tabla es 349 (en la negra era 339)
+            // 3. ACID WASH (Solo Negro)
+            { st: 'Acid Wash', sz: ['S', 'M', 'L', 'XL'], pr: '319', cols: ['Negro'] },
+            { st: 'Acid Wash', sz: ['2XL'],               pr: '349', cols: ['Negro'] },
             
-            { st: 'Tank Top',  sz: ['S', 'M', 'L', 'XL'], pr: '289' },
-            { st: 'Tank Top',  sz: ['2XL', '3XL'],        pr: '309' },
+            // 4. TANK TOP (Solo Negro)
+            { st: 'Tank Top',  sz: ['S', 'M', 'L', 'XL'], pr: '289', cols: ['Negro'] },
+            { st: 'Tank Top',  sz: ['2XL', '3XL'],        pr: '309', cols: ['Negro'] },
             
-            { st: 'Sudadera',  sz: ['S', 'M', 'L', 'XL'], pr: '399' },
-            { st: 'Sudadera',  sz: ['2XL'],               pr: '439' }
+            // 5. SUDADERA (Solo Negro)
+            { st: 'Sudadera',  sz: ['S', 'M', 'L', 'XL'], pr: '399', cols: ['Negro'] },
+            { st: 'Sudadera',  sz: ['2XL'],               pr: '439', cols: ['Negro'] }
         ];
 
-        // 3. Generar combinaciones (Color x Estilo x Talla)
-        COLORS.forEach(color => {
-            CONFIG.forEach(grp => {
+        // Lógica de generación anidada
+        CONFIG.forEach(grp => {
+            // Iteramos sobre los colores permitidos para este grupo específico
+            grp.cols.forEach(color => {
+                // Iteramos sobre las tallas
                 grp.sz.forEach(size => {
                     let attrs = { 'Color': color, 'Estilo': grp.st, 'Talla': size };
                     pendingVariations.push({ 
@@ -405,7 +409,7 @@ function nakama_render_app() {
             });
         });
 
-        // Limpiar inputs y renderizar
+        // Limpiar inputs visuales y renderizar tabla
         jQuery('#man-attr1-vals, #man-attr2-vals, #man-attr3-vals, #man-batch-price').val('');
         renderStagingTable();
     };
